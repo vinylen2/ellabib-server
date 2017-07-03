@@ -2,7 +2,7 @@ const path = require('path');
 
 const tableName = path.basename(__filename, '.js');
 
-module.exports = function commentModule(db, DataTypes) {
+module.exports = function modelExport(db, DataTypes) {
   return db.define(
     tableName,
     {
@@ -11,7 +11,7 @@ module.exports = function commentModule(db, DataTypes) {
     {
       classMethods: {
         associate(models) {
-          this.belongsToMany(models.Book, { through: 'BookAuthors' });
+          this.belongsToMany(models.Book, { through: 'BookAuthor' });
         },
       },
     },
