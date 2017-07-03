@@ -18,9 +18,12 @@
   "homepage": "https://github.com/vinylen2/ellabib-server#readme",
   "dependencies": {
     "koa": "^2.3.0",
+    "koa-bodyparser": "^4.2.0",
+    "koa2-cors": "^2.0.3",
     "sequelize": "^4.2.1"
   },
   "devDependencies": {
+    "babel-eslint": "^7.2.3",
     "eslint": "^3.19.0",
     "eslint-config-airbnb": "^15.0.1",
     "eslint-plugin-import": "^2.6.1",
