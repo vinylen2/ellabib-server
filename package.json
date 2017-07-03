@@ -1,0 +1,30 @@
+{
+  "name": "ellabib-server",
+  "version": "1.0.0",
+  "description": "Server for ellabib app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"hej\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vinylen2/ellabib-server.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vinylen2/ellabib-server/issues"
+  },
+  "homepage": "https://github.com/vinylen2/ellabib-server#readme",
+  "dependencies": {
+    "koa": "^2.3.0",
+    "sequelize": "^4.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb": "^15.0.1",
+    "eslint-plugin-import": "^2.6.1",
+    "eslint-plugin-jsx-a11y": "^5.1.0",
+    "eslint-plugin-react": "^7.1.0"
+  }
+}
