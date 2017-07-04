@@ -3,17 +3,13 @@ const path = require('path');
 const tableName = path.basename(__filename, '.js');
 
 module.exports = function modelExport(db, DataTypes) {
-  return db.define(
-    tableName,
-    {
-      name: DataTypes.STRING,
-    },
-    {
-      classMethods: {
-        associate(models) {
-          this.belongsToMany(models.Book, { through: 'BookGenre' });
-        },
-      },
-    },
-  );
+  const Model = db.define(tableName, {
+    slug: DataTypes.STRING,
+    name: DataTypes.STRING,
+  });
+  Model.associate = function (models) {
+    this.belongsToMany(models.Book, { through: 'BookGenre' });
+  };
+
+  return Model;
 };
