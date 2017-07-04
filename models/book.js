@@ -5,6 +5,7 @@ const tableName = path.basename(__filename, '.js');
 module.exports = function modelExport(db, DataTypes) {
   const Model = db.define(tableName, {
     title: DataTypes.STRING,
+    slug: DataTypes.STRING,
     views: DataTypes.INTEGER,
     pages: DataTypes.INTEGER,
     pictureUrl: DataTypes.STRING,
@@ -14,7 +15,7 @@ module.exports = function modelExport(db, DataTypes) {
   Model.associate = function (models) {
     this.belongsToMany(models.Genre, { through: 'BookGenre' });
     this.belongsToMany(models.Author, { through: 'BookAuthor' });
-    this.belongsToMany(models.Reviewer, { through: 'BookReviewer' });
+    this.belongsToMany(models.Review, { through: 'BookReview' });
   };
 
   return Model;

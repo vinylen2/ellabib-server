@@ -17,6 +17,8 @@ app.use(cors());
 // Require the Router defined in words.js
 const books = require('./routes/books.js');
 const book = require('./routes/book.js');
+const authors = require('./routes/authors.js');
+const author = require('./routes/author.js');
 
 app.listen(3000);
 console.log('Server listening on port 3000');
@@ -26,4 +28,6 @@ models.connection.sync().then(() => {
 
   app.use(books.routes());
   app.use(book.routes());
+  app.use(authors.routes());
+  app.use(author.routes());
 });

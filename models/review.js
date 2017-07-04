@@ -14,7 +14,6 @@ module.exports = function modelExport(db, DataTypes) {
 
   Model.associate = function (models) {
     this.belongsToMany(models.Book, { through: 'BookReview' });
-    this.belongsToMany(models.Author, { through: 'BookAuthor' });
     this.belongsToMany(models.Reviewer, { through: 'BookReviewer' });
   };
 
