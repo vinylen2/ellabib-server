@@ -1,6 +1,6 @@
 # API
 
-##Author
+Author
 ----
 Posts a new author to the database
 
