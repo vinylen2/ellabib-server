@@ -13,17 +13,17 @@ async function postAuthor(ctx) {
   };
 }
 
-async function getAuthor(ctx) {
-  const authorId = ctx.request.query;
-  const author = await Author.findById(authorId);
-
-  ctx.body = {
-    data: author,
-    message: 'a message',
-  };
-}
+// should be moved to books
+// async function getAuthor(ctx) {
+//   const authorId = ctx.request.query;
+//   const author = await Author.findById(authorId);
+//
+//   ctx.body = {
+//     data: author,
+//     message: 'a message',
+//   };
+// }
 
 router.post('/', postAuthor);
-router.get('/', getAuthor);
 
 module.exports = router;
