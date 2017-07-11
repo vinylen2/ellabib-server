@@ -2,13 +2,18 @@ const router = require('koa-router')({ prefix: '/book' });
 const { Book, Genre, Author } = require('../models');
 
 async function publishBook(ctx) {
-  const { title, pages, pictureUrl, genreId, authorId } = ctx.request.body;
+  // add ISBN from request
+  const { title, pages, imageUrl, genreId, authorId } = ctx.request.body;
+
+  // make slug generator from title
   const genre = await Genre.findById(genreId);
   const author = await Author.findById(authorId);
+
+  // add slug ISBN to created book
   const publishedBook = await Book.create({
     title,
     pages,
-    pictureUrl,
+    imageUrl,
   });
 
   publishedBook.setGenres(genre);

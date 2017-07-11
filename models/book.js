@@ -3,12 +3,13 @@ const path = require('path');
 const tableName = path.basename(__filename, '.js');
 
 module.exports = function modelExport(db, DataTypes) {
+  // add ISBN field
   const Model = db.define(tableName, {
     title: DataTypes.STRING,
     slug: DataTypes.STRING,
     views: DataTypes.INTEGER,
     pages: DataTypes.INTEGER,
-    pictureUrl: DataTypes.STRING,
+    imageUrl: DataTypes.STRING,
     rating: DataTypes.INTEGER,
   });
 
