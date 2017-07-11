@@ -1,5 +1,11 @@
 # API
 
+###Authors
+###Book
+###Books
+###Review
+###Reviews
+
 ##Author
 ----
 Posts a new author to the database
