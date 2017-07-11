@@ -21,11 +21,12 @@ Posts a new author to the database
 
 *  **URL Params**
 
-  None
+    None
 
 * **Data Params**
 
   **Required**
+
   { name: "Full name" }
 
 * **Success Response:**
