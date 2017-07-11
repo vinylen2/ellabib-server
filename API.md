@@ -1,5 +1,7 @@
 # API
 
+[Authors](https://github.com/vinylen2/ellabib-server/blob/master/API.md#authors)
+
 Authors
 ----
 
