@@ -1,23 +1,13 @@
 # API
 
+[Author](https://github.com/vinylen2/ellabib-server/blob/master/API.md#author)
 [Authors](https://github.com/vinylen2/ellabib-server/blob/master/API.md#authors)
+[Book](https://github.com/vinylen2/ellabib-server/blob/master/API.md#Book)
+[Books](https://github.com/vinylen2/ellabib-server/blob/master/API.md#Books)
+[Review](https://github.com/vinylen2/ellabib-server/blob/master/API.md#Review)
+[Reviews](https://github.com/vinylen2/ellabib-server/blob/master/API.md#Reviews)
 
-Authors
-----
-
-Book
-----
-
-Books
-----
-
-Review
-----
-
-Reviews
-----
-
-##Author
+Author
 ----
 Posts a new author to the database
 
@@ -67,3 +57,17 @@ Posts a new author to the database
       },
     });
   ```
+Authors
+----
+
+Book
+----
+
+Books
+----
+
+Review
+----
+
+Reviews
+----
