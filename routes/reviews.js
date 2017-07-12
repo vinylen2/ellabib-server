@@ -121,14 +121,6 @@ async function publishReview(ctx) {
   };
 }
 
-async function getReviewFromBook(ctx) {
-  const { slug, reviewId } = ctx.request.query;
-
-  // ctx.body = {
-  //   data:
-  // };
-}
-
 router.post('/', publishReview);
 router.get('/', getReviewsFromBook);
 

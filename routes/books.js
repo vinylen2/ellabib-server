@@ -82,7 +82,7 @@ async function getAllBooks(ctx) {
 }
 
 /**
- * @api {get} /books Get all books from query. Currenly searching by booktitle, author and genre.
+ * @api {get} /books Search for books
  * @apiName searchBooks
  * @apiGroup Books
  * @apiExample {curl} Example usage:
@@ -272,7 +272,7 @@ async function publishBook(ctx) {
         "imageUrl": "/path/to/image",
         "rating": null,
         "id": 12
-        "genre": [
+        "genres": [
           {
           "id": 1,
            "slug": "deckare",
@@ -286,7 +286,7 @@ async function publishBook(ctx) {
              "genreId": 1
            }
          ],
-        "author": [
+        "authors": [
           "id": 1,
           "firstname": "Gabriel",
           "lastname": "Wallén",
@@ -306,12 +306,22 @@ async function publishBook(ctx) {
  */
 async function getBook(ctx) {
   const bookId = ctx.params.id;
-  const book = await Book.findById(bookId);
-  const genre = await book.getGenres();
-  const author = await book.getAuthors();
+  const book = await Book.findAll({
+    where: { id: bookId },
+    include: [
+      { model: Genre, as: 'genres' },
+      { model: Author, as: 'authors' },
+    ],
+  });
 
-  book.dataValues.genre = genre;
-  book.dataValues.author = author;
+  // const book = await Book.findById(bookId);
+  // const genre = await book.getGenres({
+  //   attributes: { exclude: ['createdAt', 'updatedAt', 'BookGenre'] },
+  // });
+  // const author = await book.getAuthors();
+  //
+  // book.dataValues.genre = genre;
+  // book.dataValues.author = author;
 
   ctx.body = {
     data: book,
