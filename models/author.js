@@ -4,7 +4,8 @@ const tableName = path.basename(__filename, '.js');
 
 module.exports = function modelExport(db, DataTypes) {
   const Model = db.define(tableName, {
-    name: DataTypes.STRING,
+    firstname: DataTypes.STRING,
+    lastname: DataTypes.STRING,
   });
 
   Model.associate = function (models) {

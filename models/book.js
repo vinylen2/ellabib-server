@@ -11,6 +11,7 @@ module.exports = function modelExport(db, DataTypes) {
     pages: DataTypes.INTEGER,
     imageUrl: DataTypes.STRING,
     rating: DataTypes.INTEGER,
+    isbn: DataTypes.INTEGER,
   });
 
   Model.associate = function (models) {

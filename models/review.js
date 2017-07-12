@@ -10,6 +10,7 @@ module.exports = function modelExport(db, DataTypes) {
     descriptionAudioUrl: DataTypes.STRING,
     review: DataTypes.TEXT,
     reviewAudioUrl: DataTypes.STRING,
+    active: DataTypes.BOOLEAN,
   });
 
   Model.associate = function (models) {
