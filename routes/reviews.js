@@ -1,14 +1,14 @@
 const router = require('koa-router')({ prefix: '/reviews' });
-const { Review } = require('../models');
+const { Review, Reviewer, Book } = require('../models');
 
 /**
  * @api {get} /reviews Get all reviews from Book
  * @apiName getReviewsFromBook
  * @apiGroup Reviews
  * @apiExample {curl} Example usage:
- * curl -i http://localhost/8000/reviews/:slug
+ * curl -i http://localhost/8000/reviews/:id
  *
- * @apiParam {String} slug URL friendly name of book to get reviews from
+ * @apiParam {Number} id Unique ID of the Book to get Reviews from.
  *
  * @apiSuccess {Number} rating Rating of the book from Reviewer
  * @apiSuccess {Number} views Amount of views on the Review
@@ -21,43 +21,71 @@ const { Review } = require('../models');
       {
       "data": [
         {
-          "rating": 4,
+          "id": 2,
+          "rating": 3,
           "views": null,
-          "description": "The book is about ...",
-          "review": "I think the book was ...",
-          "id": 1
+          "description": "Beskrivning",
+          "descriptionAudioUrl": null,
+          "review": "Recension",
+          "reviewAudioUrl": null,
+          "active": true,
+          "createdAt": "2017-07-13T11:29:36.000Z",
+          "updatedAt": "2017-07-13T11:29:36.000Z",
+          "BookReview": {
+            "createdAt": "2017-07-13T11:29:36.000Z",
+            "updatedAt": "2017-07-13T11:29:36.000Z",
+            "bookId": 4,
+            "reviewId": 2
+          },
+          "reviewers": [
+            {
+              "id": 1,
+              "name": "1a",
+              "createdAt": "2017-07-13T00:00:00.000Z",
+              "updatedAt": "2017-07-13T00:00:00.000Z",
+              "BookReviewer": {
+                "createdAt": "2017-07-13T11:29:36.000Z",
+                "updatedAt": "2017-07-13T11:29:36.000Z",
+                "reviewId": 2,
+                "reviewerId": 1
+              }
+            }
+          ]
         },
-        {
-          "rating": 4,
-          "views": null,
-          "description": "The book is about ...",
-          "review": "I think the book was ...",
-          "id": 2
-        },
-    ],
+        { }
+      ],
       "message": "a message"
     }
  *
  */
 async function getReviewsFromBook(ctx) {
-  const { slug } = ctx.request.query;
-  const allReviewsFromBook = await Review.findAll({
-    where: { slug },
-    attributes: [
-      'rating',
-      'views',
-      'description',
-      'descriptionAudioUrl',
-      'review',
-      'reviewAudioUrl',
+  const bookId = ctx.params.id;
+  const allReviewsFromBook = await Book.findAll({
+    where: { id: bookId },
+    include: [
+      { model: Review,
+        where: { active: true },
+        as: 'reviews',
+        include: [
+          { model: Reviewer },
+        ],
+      },
     ],
-
   });
 
-  ctx.body = {
-    data: allReviewsFromBook,
-    message: 'a message',
-  };
+  // try catch error on empty array
+  try {
+    const reviews = allReviewsFromBook[0].dataValues.reviews;
+    ctx.body = {
+      data: reviews,
+      message: 'a message',
+    };
+  } catch (e) {
+    ctx.body = {
+      data: null,
+      message: 'No reviews found',
+    };
+  }
 }
 
 /**
@@ -122,6 +150,6 @@ async function publishReview(ctx) {
 }
 
 router.post('/', publishReview);
-router.get('/', getReviewsFromBook);
+router.get('/id/:id', getReviewsFromBook);
 
 module.exports = router;

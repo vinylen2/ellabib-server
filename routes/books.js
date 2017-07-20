@@ -245,7 +245,7 @@ async function publishBook(ctx) {
 }
 
 /**
- * @api {get} /books/id/:id Get book
+ * @api {get} /books/id/:id Get book from ID
  * @apiName getBook
  * @apiGroup Books
  * @apiExample {curl} Example usage:
@@ -324,13 +324,98 @@ async function getBook(ctx) {
   // book.dataValues.author = author;
 
   ctx.body = {
-    data: book,
+    data: book[0],
     message: 'a message',
   };
 }
 
+/**
+ * @api {get} /books/slug/:slug Get book from slug
+ * @apiName getBookFromSlug
+ * @apiGroup Books
+ * @apiExample {curl} Example usage:
+ * curl -i http://localhost/8000/book/slug/deckarboken
+ * @apiParam {String} slug Books unique slug
+ *
+ * @apiSuccess {String} title Title of the Book
+ * @apiSuccess {String} slug URL-friendly title of the Book
+ * @apiSuccess {Number} views Amount of views of Book
+ * @apiSuccess {Number} pages Amount of pages
+ * @apiSuccess {String} imageUrl Path to image
+ * @apiSuccess {Number} rating Rating of the Book
+ * @apiSuccess {Array} genre Array containing all genres of the Book
+ * @apiSuccess {Array} author Array containing all authors of the Book
+ *
+ * @apiSuccessExample Success-respone:
+ *    HTTP/1.1 200 OK
+      {
+      "data": {
+        "title": "A new book",
+        "slug": "a-new-book",
+        "views": null,
+        "pages": 52,
+        "imageUrl": "/path/to/image",
+        "rating": null,
+        "id": 12
+        "genres": [
+          {
+          "id": 1,
+           "slug": "deckare",
+           "name": "Deckare",
+           "createdAt": null,
+           "updatedAt": null,
+           "BookGenre": {
+             "createdAt": "2017-07-04T15:04:49.000Z",
+             "updatedAt": "2017-07-04T15:04:49.000Z",
+             "bookId": 1,
+             "genreId": 1
+           }
+         ],
+        "authors": [
+          "id": 1,
+          "firstname": "Gabriel",
+          "lastname": "Wallén",
+          "createdAt": "2017-07-12T12:02:16.000Z",
+          "updatedAt": "2017-07-12T12:02:16.000Z",
+          "BookAuthor": {
+            "createdAt": "2017-07-04T15:09:48.000Z",
+            "updatedAt": "2017-07-04T15:09:48.000Z",
+            "authorId": 1,
+            "bookId": 1
+          }
+        ]
+      },
+      "message": "a message"
+    }
+ *
+ */
+async function getBookFromSlug(ctx) {
+  const slug = ctx.params.slug;
+  const book = await Book.findAll({
+    where: { slug },
+    include: [
+      { model: Genre, as: 'genres' },
+      { model: Author, as: 'authors' },
+    ],
+  });
+
+  // const book = await Book.findById(bookId);
+  // const genre = await book.getGenres({
+  //   attributes: { exclude: ['createdAt', 'updatedAt', 'BookGenre'] },
+  // });
+  // const author = await book.getAuthors();
+  //
+  // book.dataValues.genre = genre;
+  // book.dataValues.author = author;
+
+  ctx.body = {
+    data: book[0],
+    message: 'a message',
+  };
+}
 router.post('/', publishBook);
 router.get('/id/:id', getBook);
+router.get('/slug/:slug', getBookFromSlug);
 router.get('/', getAllBooks);
 router.get('/search', searchForBooks);
 

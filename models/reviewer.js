@@ -8,7 +8,7 @@ module.exports = function modelExport(db, DataTypes) {
   });
 
   Model.associate = function (models) {
-    this.belongsToMany(models.Book, { through: 'BookReviewer' });
+    this.belongsToMany(models.Review, { through: 'BookReviewer' });
   };
 
   return Model;
