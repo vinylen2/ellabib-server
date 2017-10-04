@@ -10,8 +10,9 @@ module.exports = function modelExport(db, DataTypes) {
     views: DataTypes.INTEGER,
     pages: DataTypes.INTEGER,
     imageUrl: DataTypes.STRING,
-    rating: DataTypes.INTEGER,
-    isbn: DataTypes.INTEGER,
+    localImage: DataTypes.BOOLEAN,
+    rating: DataTypes.FLOAT,
+    isbn: DataTypes.STRING(13),
   });
 
   Model.associate = function (models) {

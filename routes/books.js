@@ -1,7 +1,9 @@
 const router = require('koa-router')({ prefix: '/books' });
 const Promise = require('bluebird');
 const _ = require('lodash');
-const { Book, Genre, Author } = require('../models');
+const axios = require('axios');
+const { Book, Genre, Author, Review, Reviewer } = require('../models');
+const bokhavetApi = require('../config.json').bokhavetApi;
 
 function slugify(text) {
   return text.toString().toLowerCase()
@@ -16,10 +18,10 @@ function slugify(text) {
  * @apiName getBooks
  * @apiGroup Books
  * @apiExample {curl} Example usage:
- * curl -i http://localhost/8000/books?genre=:genreId
+ * curl -i http://localhost/8000/books?genre=:genreId,genreId
  *
  * @apiParam {String} genre Query for books by genre
- * @apiParam {Number} genreId ID of the genre to query for.
+ * @apiParam {Number} genreId ID of the genre to query for separated by commas.
  *
  * @apiSuccess {Array} data Array containing all books
  * @apiSuccess {String} title Title of the Book
@@ -57,26 +59,68 @@ function slugify(text) {
  *
  */
 async function getAllBooks(ctx) {
-  const queryArray = ctx.request.query;
+  const queryObject = ctx.request.query;
+  let offset = 0;
+  let queries = {};
+  let limit = 40;
 
-  const books = await (() => {
-    if ('genre' in queryArray) {
+  if ('genre' in queryObject) {
+    queries.genre = queryObject.genre[0].split(',');
+    // if (queries.genre.length > 1) {
+    //   limit = parseInt(limit / queries.genre.length);
+    // }
+  }
+  if ('offset' in queryObject) {
+    offset = parseInt(queryObject.offset);
+  }
+
+  const rawBooks = await (() => {
+    if ('genre' in queries) {
       return Promise
-        .all(queryArray.genre.map(id => Genre.findById(id)))
-        .map(genre => genre.getBooks());
+        .all(queries.genre.map(id => Genre.findById(id)))
+        .map(genre => genre.getBooks({
+          limit,
+          offset,
+        }));
     }
 
-    return Book.findAll({
-      attributes: { exclude: ['updatedAt'] },
+    return Book.findAndCountAll({
+      limit,
+      offset,
+      attributes: {
+        exclude: ['updatedAt'],
+      },
     });
   })();
 
-  // if books get several genres uncomment this
-  // _.uniqBy(_.flatten(books), 'id');
+  let books;
+  let totalCount;
+
+  if ('genre' in queryObject) {
+    console.log(queries.genre);
+    const allGenreBooks = await(() => {
+      return Promise
+        .all(queries.genre.map(id => Genre.findById(id)))
+        .map(genre => genre.getBooks({
+        }));
+    })();
+    books = _.flattenDeep(rawBooks);
+    totalCount = _.flattenDeep(allGenreBooks).length;
+  } else {
+    totalCount = rawBooks.count;
+    books = rawBooks.rows;
+  }
+  const flattenedBooks = _.uniqBy(_.flatten(books), 'id');
+  const range = {
+    start: offset + 1,
+    last: offset + books.length,
+    total: totalCount,
+    limit: limit,
+  };
 
   ctx.body = {
     data: books,
-    total: books.length,
+    range,
     message: 'a message',
   };
 }
@@ -216,33 +260,113 @@ async function searchForBooks(ctx) {
     }
  *
  */
-async function publishBook(ctx) {
-  const { title, pages, imageUrl, genreId, authorId, isbn } = ctx.request.body;
+async function publishBookManually(ctx) {
+  let { title, pages, imageUrl, genreId, authorId, isbn } = ctx.request.body;
 
-  const slug = slugify(title);
-  const genre = await Genre.findById(genreId);
+  // const slug = slugify(title);
   const author = await Author.findById(authorId);
 
-  const publishedBook = await Book.create({
-    title,
-    pages,
-    imageUrl,
-    slug,
-    isbn,
+  if (!imageUrl) {
+    imageUrl: 'nopicture.png';
+  }
+  // improvements:
+  // add support for publishing picture
+
+  const genre = await Genre.findById(genreId);
+  const publishedBook = await Book.findOrCreate({
+    where : { isbn },
+    defaults: {
+      title,
+      pages,
+      imageUrl,
+      slug: slugify(title),
+      isbn,
+    },
   });
 
+  publishedBook[0].setGenres(genre);
+  publishedBook[0].setAuthors(author);
 
-  publishedBook.setGenres(genre);
-  publishedBook.setAuthors(author);
-
-  publishedBook.dataValues.genre = genre.dataValues;
-  publishedBook.dataValues.author = author.dataValues;
+  publishedBook[0].dataValues.genre = genre.dataValues;
+  publishedBook[0].dataValues.author = author.dataValues;
 
   ctx.body = {
     data: publishedBook,
     message: 'a message',
   };
 }
+
+
+async function publishBookFromIsbn(ctx) {
+  const { isbn, genreId } = ctx.request.body;
+
+  try {
+    const bokhavetResponse = await axios.get(`${bokhavetApi.url}${isbn}${bokhavetApi.key}`);
+    // defining vars for book creation
+    if (!bokhavetResponse.data.success) {
+      throw('No match on ISBN');
+    }
+    const apiData = bokhavetResponse.data.data;
+    const { title, pages } = apiData;
+    const authorArray = apiData.author.split(" ");
+    const firstname = authorArray[0];
+    const lastname = authorArray[authorArray.length - 1];
+
+    const author = await Author.findOrCreate({
+      where : {
+        lastname,
+        firstname: {
+          $like: `%${firstname}%`,
+        },
+      },
+      defaults: {
+        firstname,
+        lastname,
+      },
+    });
+
+    const authorId = author[0].id;
+    let localImage = false;
+    let imageUrl;
+    if (apiData.image) {
+      imageUrl = apiData.image;
+    } else if (apiData.external_image) {
+      imageUrl = apiData.external_image;
+    } else {
+      imageUrl = "nopicture.png";
+      localImage = true;
+    }
+
+    console.log(typeof(isbn));
+    const book = await Book.findOrCreate({
+      where: { isbn },
+      defaults: {
+        title,
+        pages,
+        imageUrl,
+        localImage,
+        slug: slugify(title),
+        isbn,
+      }
+    });
+    const genre = await Genre.findById(genreId);
+    book[0].setGenres(genre);
+    book[0].setAuthors(author[0]);
+
+    ctx.body = {
+      data: book[0],
+      added: true,
+      message: 'a message',
+    };
+
+  } catch (e) {
+    ctx.body = {
+      added: false,
+      message: 'No book for ISBN',
+    };
+  }
+}
+
 
 /**
  * @api {get} /books/id/:id Get book from ID
@@ -311,6 +435,12 @@ async function getBook(ctx) {
     include: [
       { model: Genre, as: 'genres' },
       { model: Author, as: 'authors' },
+      { model: Review,
+        as: 'reviews',
+        include: [
+          { model: Reviewer },
+        ],
+      },
     ],
   });
 
@@ -345,6 +475,7 @@ async function getBook(ctx) {
  * @apiSuccess {Number} rating Rating of the Book
  * @apiSuccess {Array} genre Array containing all genres of the Book
  * @apiSuccess {Array} author Array containing all authors of the Book
+ * @apiSuccess {Array} reviews Array containing all active reviews of the Book
  *
  * @apiSuccessExample Success-respone:
  *    HTTP/1.1 200 OK
@@ -391,29 +522,44 @@ async function getBook(ctx) {
  */
 async function getBookFromSlug(ctx) {
   const slug = ctx.params.slug;
-  const book = await Book.findAll({
-    where: { slug },
-    include: [
-      { model: Genre, as: 'genres' },
-      { model: Author, as: 'authors' },
-    ],
-  });
+  try {
+    const book = await Book.findAll({
+      where: { slug },
+      include: [
+        { model: Genre, as: 'genres' },
+        { model: Author, as: 'authors' },
+        { model: Review,
+          where: { active: true },
+          as: 'reviews',
+          required: false,
+          include: [
+            { model: Reviewer },
+          ],
+        },
+      ],
+    });
+    // const book = await Book.findById(bookId);
+    // const genre = await book.getGenres({
+    //   attributes: { exclude: ['createdAt', 'updatedAt', 'BookGenre'] },
+    // });
+    // const author = await book.getAuthors();
+    // book.dataValues.genre = genre;
+    // book.dataValues.author = author;
 
-  // const book = await Book.findById(bookId);
-  // const genre = await book.getGenres({
-  //   attributes: { exclude: ['createdAt', 'updatedAt', 'BookGenre'] },
-  // });
-  // const author = await book.getAuthors();
-  //
-  // book.dataValues.genre = genre;
-  // book.dataValues.author = author;
-
-  ctx.body = {
-    data: book[0],
-    message: 'a message',
-  };
+    ctx.body = {
+      data: book[0],
+      message: 'a message',
+    };
+  } catch (e) {
+    ctx.body = {
+      data: e,
+      message: 'failed',
+    };
+  }
 }
-router.post('/', publishBook);
+
+router.post('/publish/manual', publishBookManually);
+router.post('/publish/isbn', publishBookFromIsbn);
 router.get('/id/:id', getBook);
 router.get('/slug/:slug', getBookFromSlug);
 router.get('/', getAllBooks);

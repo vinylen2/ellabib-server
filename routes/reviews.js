@@ -1,5 +1,13 @@
 const router = require('koa-router')({ prefix: '/reviews' });
+const busboy = require('koa-busboy');
+const Promise = require('bluebird');
 const { Review, Reviewer, Book } = require('../models');
+const uuidv4 = require('uuid/v4');
+
+const uploader = busboy({
+  dest: './audio',
+  fnDestFilename: (fieldname, filename) => `${filename}-${uuidv4()}-${fieldname}.mp3`,
+});
 
 /**
  * @api {get} /reviews Get all reviews from Book
@@ -132,16 +140,35 @@ async function getReviewsFromBook(ctx) {
  */
 async function publishReview(ctx) {
   const { description, review, reviewerId, bookId, rating } = ctx.request.body;
+  const files = ctx.request.files;
+
+  let descriptionAudioUrl;
+  let reviewAudioUrl;
+
+  if (files) {
+    files.forEach((object) => {
+      if (object.fieldname === 'descriptionRecording') {
+        descriptionAudioUrl = object.path;
+      }
+      if (object.fieldname === 'reviewRecording') {
+        reviewAudioUrl = object.path;
+      }
+    });
+  }
+
   const book = await Book.findById(bookId);
   const reviewer = await Reviewer.findById(reviewerId);
   const publishedReview = await Review.create({
     description,
+    descriptionAudioUrl,
+    reviewAudioUrl,
     review,
     rating,
+    active: false,
   });
 
   publishedReview.addReviewers(reviewer);
-  publishedReview.addBooks(book);
+  publishedReview.addBooks(book)
 
   ctx.body = {
     data: publishedReview,
@@ -149,7 +176,114 @@ async function publishReview(ctx) {
   };
 }
 
-router.post('/', publishReview);
+
+/**
+ * @api {patch} /reviews Activates selected Review
+ * @apiName activateReview
+ * @apiGroup Reviews
+ * @apiParamExample {json} Request-Example:
+ *
+ * {
+ *  "id": 1,
+  }
+ *
+ * @apiParam {Number} id Unique ID of Review to activate
+ *
+ *
+ * @apiSuccessExample Success-respone:
+ *    HTTP/1.1 200 OK
+      {
+      "data": {
+        "active": true,
+      },
+      "message": "Review activated"
+    }
+ *
+ */
+async function activateReviews(ctx) {
+  // const { reviewIds } = ctx.request.body;
+  const reviewIds = [2, 3];
+
+
+  // bulk activate this
+  const activatedReviews = await(() => {
+    return Promise
+      .all(reviewIds.map(id => Review.findById(id)))
+      .map(review => review.update({ active: true}));
+  })();
+
+
+  ctx.body = {
+    data: activatedReviews.length,
+    message: 'Succeeded',
+  };
+}
+
+/**
+ * @api {get} /inactive Get all inactive Reviews
+ * @apiName getInactiveReviews
+ * @apiGroup Reviews
+ * @apiExample {curl} Example usage:
+ * curl -i http://localhost/8000/reviews/inactive
+ *
+ * @apiSuccess {String} slug URL-friendly title of the Book
+ * @apiSuccess {Number} views Amount of views of Book
+ *
+ * @apiSuccessExample Success-respone:
+ *    HTTP/1.1 200 OK
+      {
+      "data": [
+        {
+          "active": false,
+          "createdAt": "2017-07-25T10:34:43.000Z",
+          "createdAt": "2017-07-25T10:34:43.000Z",
+          "description": "",
+          "descriptionAudioUrl": "audio/fantasyboken-a7b906c6-7c1b-4a8d-81cd-c39b792ea9c3-descriptionRecording.mp3",
+          "id": 49,
+          "rating": 0,
+          "review": "",
+          "reviewAudioUrl": null,
+          "updatedAt": "2017-07-25T10:34:43.000Z",
+          "views": null,
+          books: [
+            {
+              "createdAt": "2017-07-04T15:09:48.000Z",
+              "id": 1,
+              "imageUrl": "tidningsmysteriet.jpg",
+              "isbn": 9780141043029,
+              "pages": 20,
+              "rating": 5,
+              "slug": "tidningsmysteriet",
+              "title": "Tidningsmysteriet",
+              "updatedAt": "2017-07-04T15:09:48.000Z",
+              "views": null
+            }
+          ]
+        }
+      ],
+      "message": "Review activated"
+    }
+ *
+ */
+async function getInactiveReviews(ctx) {
+  const inactiveReviews = await Review.findAll({
+    where: {
+      active: false,
+    },
+    include: [
+      { model: Book, exclude: ['createdAt', 'updatedAt'] },
+    ],
+  });
+
+  ctx.body = {
+    data: inactiveReviews,
+    message: 'All inactivated reviews',
+  };
+}
+
+router.patch('/', activateReviews);
+router.post('/', uploader, publishReview);
 router.get('/id/:id', getReviewsFromBook);
+router.get('/inactive', getInactiveReviews);
 
 module.exports = router;

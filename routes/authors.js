@@ -66,6 +66,7 @@ async function getAuthors(ctx) {
 
 async function postAuthor(ctx) {
   const { firstname, lastname } = ctx.request.body;
+  console.log(firstname, lastname);
   const author = await Author.create({
     firstname,
     lastname,
@@ -76,17 +77,6 @@ async function postAuthor(ctx) {
     message: 'a message',
   };
 }
-
-// should be moved to books
-// async function getAuthor(ctx) {
-//   const authorId = ctx.request.query;
-//   const author = await Author.findById(authorId);
-//
-//   ctx.body = {
-//     data: author,
-//     message: 'a message',
-//   };
-// }
 
 router.post('/', postAuthor);
 router.get('/', getAuthors);

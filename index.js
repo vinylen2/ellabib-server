@@ -1,6 +1,7 @@
 const Koa = require('koa');
 const router = require('koa-router');
 const bodyParser = require('koa-bodyparser');
+const config = require('./config.json');
 const cors = require('koa2-cors');
 
 const models = require('./models');
@@ -8,8 +9,12 @@ const models = require('./models');
 const app = new Koa();
 require('koa-qs')(app, 'strict');
 
+
 // Set up body parsing middleware
 app.use(bodyParser());
+
+// Multer for parsing of multipart/form-data
+// app.use(multer());
 
 // Enable CORS
 app.use(cors());
@@ -20,12 +25,11 @@ const authors = require('./routes/authors.js');
 const reviews = require('./routes/reviews.js');
 const genres = require('./routes/genres.js');
 
-app.listen(3000);
-console.log('Server listening on port 3000');
+app.listen(config.port);
 
-models.connection.sync().then(() => {
+models.connection.sync({alter: true}).then(() => {
+  console.log(`Server listening on port: ${config.port}`);
   console.log('Sequelize synchronized');
-
   app.use(books.routes());
   app.use(genres.routes());
   app.use(authors.routes());
