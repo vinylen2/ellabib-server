@@ -459,6 +459,25 @@ async function getBook(ctx) {
   };
 }
 
+async function getBookFromIsbn(ctx) {
+  const isbn = ctx.params.isbn;
+  const book = await Book.findAll({
+    where: { isbn },
+  });
+  // const book = await Book.findById(bookId);
+  // const genre = await book.getGenres({
+  //   attributes: { exclude: ['createdAt', 'updatedAt', 'BookGenre'] },
+  // });
+  // const author = await book.getAuthors();
+  //
+  // book.dataValues.genre = genre;
+  // book.dataValues.author = author;
+
+  ctx.body = {
+    data: book[0],
+    message: 'a message',
+  };
+}
 /**
  * @api {get} /books/slug/:slug Get book from slug
  * @apiName getBookFromSlug
@@ -558,6 +577,7 @@ async function getBookFromSlug(ctx) {
 router.post('/publish/manual', publishBookManually);
 router.post('/publish/isbn', publishBookFromIsbn);
 router.get('/id/:id', getBook);
+router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);
 router.get('/', getAllBooks);
 router.get('/search', searchForBooks);
