@@ -3,23 +3,33 @@ const router = require('koa-router');
 const bodyParser = require('koa-bodyparser');
 const config = require('./config.json');
 const cors = require('koa2-cors');
-
 const models = require('./models');
+const session = require('koa-session');
 
 const app = new Koa();
 require('koa-qs')(app, 'strict');
 
 
+app.keys = config.secret;
+
+const CONFIG = {
+  httpOnly: false,
+};
 // Set up body parsing middleware
 app.use(bodyParser());
+app.use(session(CONFIG, app));
 
-// Multer for parsing of multipart/form-data
-// app.use(multer());
 
 // Enable CORS
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:8080',
+  credentials: true,
+  allowMethods: ['GET', 'PATCH', 'POST'],
+  allowHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept'],
+}));
 
 // Require the Router defined in words.js
+const auth = require('./routes/auth.js');
 const books = require('./routes/books.js');
 const authors = require('./routes/authors.js');
 const reviews = require('./routes/reviews.js');
@@ -30,6 +40,7 @@ app.listen(config.port);
 models.connection.sync({alter: true}).then(() => {
   console.log(`Server listening on port: ${config.port}`);
   console.log('Sequelize synchronized');
+  app.use(auth.routes());
   app.use(books.routes());
   app.use(genres.routes());
   app.use(authors.routes());

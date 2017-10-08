@@ -5,6 +5,7 @@ const axios = require('axios');
 const { Book, Genre, Author, Review, Reviewer } = require('../models');
 const bokhavetApi = require('../config.json').bokhavetApi;
 
+
 function slugify(text) {
   return text.toString().toLowerCase()
   .replace(/\s+/g, '-')           // Replace spaces with -
@@ -13,6 +14,7 @@ function slugify(text) {
   .replace(/^-+/, '')             // Trim - from start of text
   .replace(/-+$/, '');            // Trim - from end of text
 }
+
 /**
  * @api {get} /books Get all books
  * @apiName getBooks
@@ -299,6 +301,8 @@ async function publishBookManually(ctx) {
 
 async function publishBookFromIsbn(ctx) {
   const { isbn, genreId } = ctx.request.body;
+  const adminCookie = ctx.cookies.get('admin');
+  console.log(adminCookie);
 
   try {
     const bokhavetResponse = await axios.get(`${bokhavetApi.url}${isbn}${bokhavetApi.key}`);
@@ -522,6 +526,7 @@ async function getBook(ctx) {
  */
 async function getBookFromSlug(ctx) {
   const slug = ctx.params.slug;
+
   try {
     const book = await Book.findAll({
       where: { slug },
@@ -538,13 +543,9 @@ async function getBookFromSlug(ctx) {
         },
       ],
     });
-    // const book = await Book.findById(bookId);
-    // const genre = await book.getGenres({
-    //   attributes: { exclude: ['createdAt', 'updatedAt', 'BookGenre'] },
-    // });
-    // const author = await book.getAuthors();
-    // book.dataValues.genre = genre;
-    // book.dataValues.author = author;
+
+    const rating = _.meanBy(book[0].reviews, (review) => review.rating);
+    book[0].dataValues.rating = rating;
 
     ctx.body = {
       data: book[0],

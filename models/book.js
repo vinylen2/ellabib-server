@@ -11,7 +11,6 @@ module.exports = function modelExport(db, DataTypes) {
     pages: DataTypes.INTEGER,
     imageUrl: DataTypes.STRING,
     localImage: DataTypes.BOOLEAN,
-    rating: DataTypes.FLOAT,
     isbn: DataTypes.STRING(13),
   });
 

@@ -201,20 +201,47 @@ async function publishReview(ctx) {
  *
  */
 async function activateReviews(ctx) {
-  // const { reviewIds } = ctx.request.body;
-  const reviewIds = [2, 3];
+  const { reviews } = ctx.request.body;
 
-
-  // bulk activate this
-  const activatedReviews = await(() => {
-    return Promise
-      .all(reviewIds.map(id => Review.findById(id)))
-      .map(review => review.update({ active: true}));
-  })();
-
+  const activatedReviews = await Promise.all(reviews.map(async (element) => {
+    let entry = await Review.findById(element.id);
+    let { description, review } = element;
+    return entry.update({ active: true, description, review });
+  }));
 
   ctx.body = {
-    data: activatedReviews.length,
+    data: activatedReviews,
+    message: 'Succeeded',
+  };
+}
+
+async function editReviewAudio(ctx) {
+  const { reviewId } = ctx.request.body;
+  const files = ctx.request.files;
+
+  let descriptionAudioUrl;
+  let reviewAudioUrl;
+
+  files.forEach((object) => {
+    if (object.fieldname === 'descriptionRecording') {
+      descriptionAudioUrl = object.path;
+    }
+    if (object.fieldname === 'reviewRecording') {
+      reviewAudioUrl = object.path;
+    }
+  });
+
+  const reviewData = await Review.findById(reviewId);
+  // insert reloacting old audiofiles here.
+  console.log(reviewData);
+
+  const editedReview = reviewData.update({
+    descriptionAudioUrl,
+    reviewAudioUrl,
+  });
+
+  ctx.body = {
+    data: editedReview,
     message: 'Succeeded',
   };
 }
@@ -282,6 +309,8 @@ async function getInactiveReviews(ctx) {
 }
 
 router.patch('/', activateReviews);
+router.patch('/audio/edit', uploader, editReviewAudio);
+// router.patch('/update/full', uploader, editReviewAndAudio);
 router.post('/', uploader, publishReview);
 router.get('/id/:id', getReviewsFromBook);
 router.get('/inactive', getInactiveReviews);
