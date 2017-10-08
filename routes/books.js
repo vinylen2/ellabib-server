@@ -265,7 +265,6 @@ async function searchForBooks(ctx) {
 async function publishBookManually(ctx) {
   let { title, pages, imageUrl, genreId, authorId, isbn } = ctx.request.body;
 
-  // const slug = slugify(title);
   const author = await Author.findById(authorId);
 
   if (!imageUrl) {
@@ -288,9 +287,6 @@ async function publishBookManually(ctx) {
 
   publishedBook[0].setGenres(genre);
   publishedBook[0].setAuthors(author);
-
-  publishedBook[0].dataValues.genre = genre.dataValues;
-  publishedBook[0].dataValues.author = author.dataValues;
 
   ctx.body = {
     data: publishedBook,
