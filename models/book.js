@@ -12,6 +12,7 @@ module.exports = function modelExport(db, DataTypes) {
     imageUrl: DataTypes.STRING,
     localImage: DataTypes.BOOLEAN,
     isbn: DataTypes.STRING(13),
+    libraryId: DataTypes.INTEGER,
   });
 
   Model.associate = function (models) {

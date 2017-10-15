@@ -15,6 +15,29 @@ function slugify(text) {
   .replace(/-+$/, '');            // Trim - from end of text
 }
 
+function flattenQueries(array) {
+  return _.flatten(array.query.map((query) => {
+    if (query.includes(" ")) {
+      const word = query.split(" ");
+      return word;
+    } else {
+      return query;
+    }
+  }));
+}
+
+function flattenAndUnique(array) {
+  const flattenedArray = _.flattenDeep(array);
+  const arrayOfBooks = flattenedArray.map((entry) => {
+    if (entry.books) {
+      return entry.books;
+    }
+    return entry;
+  });
+  return _.uniqBy(_.flatten(arrayOfBooks), 'id');
+}
+
+
 /**
  * @api {get} /books Get all books
  * @apiName getBooks
@@ -63,65 +86,28 @@ function slugify(text) {
 async function getAllBooks(ctx) {
   const queryObject = ctx.request.query;
   let offset = 0;
-  let queries = {};
   let limit = 40;
 
-  if ('genre' in queryObject) {
-    queries.genre = queryObject.genre[0].split(',');
-    // if (queries.genre.length > 1) {
-    //   limit = parseInt(limit / queries.genre.length);
-    // }
-  }
   if ('offset' in queryObject) {
     offset = parseInt(queryObject.offset);
   }
 
-  const rawBooks = await (() => {
-    if ('genre' in queries) {
-      return Promise
-        .all(queries.genre.map(id => Genre.findById(id)))
-        .map(genre => genre.getBooks({
-          limit,
-          offset,
-        }));
-    }
-
-    return Book.findAndCountAll({
+  const books = await Book.findAndCountAll({
       limit,
       offset,
       attributes: {
         exclude: ['updatedAt'],
       },
     });
-  })();
 
-  let books;
-  let totalCount;
-
-  if ('genre' in queryObject) {
-    console.log(queries.genre);
-    const allGenreBooks = await(() => {
-      return Promise
-        .all(queries.genre.map(id => Genre.findById(id)))
-        .map(genre => genre.getBooks({
-        }));
-    })();
-    books = _.flattenDeep(rawBooks);
-    totalCount = _.flattenDeep(allGenreBooks).length;
-  } else {
-    totalCount = rawBooks.count;
-    books = rawBooks.rows;
-  }
-  const flattenedBooks = _.uniqBy(_.flatten(books), 'id');
   const range = {
     start: offset + 1,
-    last: offset + books.length,
-    total: totalCount,
+    last: books.count,
     limit: limit,
   };
 
   ctx.body = {
-    data: books,
+    data: books.rows,
     range,
     message: 'a message',
   };
@@ -173,50 +159,113 @@ async function getAllBooks(ctx) {
  *
  */
 async function searchForBooks(ctx) {
-  const queryArray = ctx.request.query;
-  console.log(queryArray);
+  const queryArray = flattenQueries(ctx.request.query);
+
   const books = await (() => {
     const genreQuery = Promise
-      .all(queryArray.query.map(query => Genre.findAll({
-        where: { name: query },
+      .all(queryArray.map(query => Genre.findAll({
+        where: { 
+          name: { 
+            $like: `${query}%`, 
+          },
+        },
         include: [{
           model: Book,
         }],
       })));
 
     const authorQuery = Promise
-      .all(queryArray.query.map(query => Author.findAll({
-        where: { firstname: query },
+      .all(queryArray.map(query => Author.findAll({
+        where: { 
+          $or: [
+            { 
+              firstname: {
+                $like: `%${query}%`,
+              },
+            },
+            { 
+              lastname: {
+                $like: `%${query}%`,
+              },
+            },
+          ],
+        },
         include: [{
           model: Book,
         }],
       })));
 
     const titleQuery = Promise
-      .all(queryArray.query.map(query => Book.findAll({
-        where: { title: query },
+      .all(queryArray.map(query => Book.findAll({
+        where: { 
+          title: {
+            $like: `%${query}%`,
+          },
+        },
       })));
 
     return Promise.all([genreQuery, authorQuery, titleQuery]);
   })();
 
-  const flattenedArray = _.flattenDeep(books);
-  const arrayOfBooks = flattenedArray.map((entry) => {
-    if (entry.books) {
-      return entry.books;
-    }
-    return entry;
-  });
-  const arrayOfUniqueBooks = _.uniqBy(_.flatten(arrayOfBooks), 'id');
-
-  // console.log(newly[0].books);
-
   ctx.body = {
-    data: arrayOfUniqueBooks,
+    data: flattenAndUnique(books),
     message: 'a message',
   };
+}
 
+async function searchForBooksWithGenre(ctx) {
+  const genre = ctx.params.genre;
+  const queryArray = flattenQueries(ctx.request.query);
 
+  const books = await (() => {
+    const booksFromGenre = Promise
+      .all(queryArray.map(query => Genre.findAll({
+          where: { 
+            name: genre,
+          },
+          include: [{
+            model: Book,
+            where: {
+              slug: { 
+                $like: `${query}%`, 
+              },
+            },
+          }],
+        })));
+      
+    const booksFromAuthor = Promise
+      .all(queryArray.map(query => Author.findAll({
+        where: { 
+          $or: [
+            { 
+              firstname: {
+                $like: `%${query}%`,
+              },
+            },
+            { 
+              lastname: {
+                $like: `%${query}%`,
+              },
+            },
+          ],
+        },
+        include: [{
+          model: Book,
+          include: [{
+            model: Genre,
+            where: {
+              name: genre,
+            },
+          }],
+        }],
+      })));
+      return Promise.all([booksFromGenre, booksFromAuthor]);
+})();
+
+  ctx.body = {
+    data: flattenAndUnique(books),
+    message: 'hej',
+  };
 }
 /**
  * @api {post} /books Post new Book
@@ -461,17 +510,16 @@ async function getBook(ctx) {
 
 async function getBookFromIsbn(ctx) {
   const isbn = ctx.params.isbn;
+  const libraryId = ctx.params.isbn;
   const book = await Book.findAll({
-    where: { isbn },
+    where: {
+      $or: [
+        { isbn },
+        { libraryId }, 
+      ],
+    }
+    // where: { isbn },
   });
-  // const book = await Book.findById(bookId);
-  // const genre = await book.getGenres({
-  //   attributes: { exclude: ['createdAt', 'updatedAt', 'BookGenre'] },
-  // });
-  // const author = await book.getAuthors();
-  //
-  // book.dataValues.genre = genre;
-  // book.dataValues.author = author;
 
   ctx.body = {
     data: book[0],
@@ -562,13 +610,14 @@ async function getBookFromSlug(ctx) {
     const rating = _.meanBy(book[0].reviews, (review) => review.rating);
     book[0].dataValues.rating = rating;
 
+    ctx.status = 200;
     ctx.body = {
       data: book[0],
-      message: 'a message',
+      message: 'Success',
     };
   } catch (e) {
+    ctx.status = e.status || 500;
     ctx.body = {
-      data: e,
       message: 'failed',
     };
   }
@@ -581,5 +630,6 @@ router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);
 router.get('/', getAllBooks);
 router.get('/search', searchForBooks);
+router.get('/genre/:genre/search', searchForBooksWithGenre);
 
 module.exports = router;

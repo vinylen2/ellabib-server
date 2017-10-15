@@ -1,11 +1,12 @@
 const router = require('koa-router')({ prefix: '/reviews' });
 const busboy = require('koa-busboy');
 const Promise = require('bluebird');
+const _ = require('lodash');
 const { Review, Reviewer, Book } = require('../models');
 const uuidv4 = require('uuid/v4');
 
 const uploader = busboy({
-  dest: './audio',
+  dest: '/var/www/html/audio',
   fnDestFilename: (fieldname, filename) => `${filename}-${uuidv4()}-${fieldname}.mp3`,
 });
 
@@ -147,11 +148,12 @@ async function publishReview(ctx) {
 
   if (files) {
     files.forEach((object) => {
+      const fileName = _.last(object.path.split('/'));
       if (object.fieldname === 'descriptionRecording') {
-        descriptionAudioUrl = object.path;
+        descriptionAudioUrl = fileName;
       }
       if (object.fieldname === 'reviewRecording') {
-        reviewAudioUrl = object.path;
+        reviewAudioUrl = fileName;
       }
     });
   }
@@ -223,12 +225,13 @@ async function editReviewAudio(ctx) {
   let reviewAudioUrl;
 
   files.forEach((object) => {
-    if (object.fieldname === 'descriptionRecording') {
-      descriptionAudioUrl = object.path;
-    }
-    if (object.fieldname === 'reviewRecording') {
-      reviewAudioUrl = object.path;
-    }
+      const fileName = _.last(object.path.split('/'));
+      if (object.fieldname === 'descriptionRecording') {
+        descriptionAudioUrl = fileName;
+      }
+      if (object.fieldname === 'reviewRecording') {
+        reviewAudioUrl = fileName;
+      }
   });
 
   const reviewData = await Review.findById(reviewId);
@@ -310,7 +313,6 @@ async function getInactiveReviews(ctx) {
 
 router.patch('/', activateReviews);
 router.patch('/audio/edit', uploader, editReviewAudio);
-// router.patch('/update/full', uploader, editReviewAndAudio);
 router.post('/', uploader, publishReview);
 router.get('/id/:id', getReviewsFromBook);
 router.get('/inactive', getInactiveReviews);

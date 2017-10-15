@@ -1,4 +1,5 @@
 const router = require('koa-router')({ prefix: '/auth' });
+const _ = require('lodash');
 const config = require('../config.json');
 
 async function authAdmin(ctx) {
@@ -16,11 +17,12 @@ async function authAdmin(ctx) {
 }
 
 async function authIp(ctx) {
-    // const ip = ctx.ip;
-    const ip = 1;
-
+    const ip = ctx.ip;
     let ipAuth = false;
-    if (ip == 1) {
+    const index = (_.indexOf(config.allowedToPublish, ip));
+    console.log(index);
+
+    if (index > -1) {
         ctx.cookies.set('publishReview', true);
         ipAuth = true;
     }
