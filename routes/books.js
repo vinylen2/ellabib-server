@@ -2,9 +2,19 @@ const router = require('koa-router')({ prefix: '/books' });
 const Promise = require('bluebird');
 const _ = require('lodash');
 const axios = require('axios');
+const cookie = require('cookie');
 const { Book, Genre, Author, Review, Reviewer } = require('../models');
 const bokhavetApi = require('../config.json').bokhavetApi;
 
+async function authAdmin(ctx, next) {
+  try {
+    if (cookie.parse(ctx.header.cookie).admin) {
+      await next();
+    }
+  } catch (e) {
+    ctx.status = 403;
+  }
+}
 
 function slugify(text) {
   return text.toString().toLowerCase()
@@ -84,6 +94,7 @@ function flattenAndUnique(array) {
  *
  */
 async function getAllBooks(ctx) {
+  console.log(ctx.body);
   const queryObject = ctx.request.query;
   let offset = 0;
   let limit = 40;
@@ -347,7 +358,6 @@ async function publishBookManually(ctx) {
 async function publishBookFromIsbn(ctx) {
   const { isbn, genreId } = ctx.request.body;
   const adminCookie = ctx.cookies.get('admin');
-  console.log(adminCookie);
 
   try {
     const bokhavetResponse = await axios.get(`${bokhavetApi.url}${isbn}${bokhavetApi.key}`);
@@ -378,15 +388,14 @@ async function publishBookFromIsbn(ctx) {
     let localImage = false;
     let imageUrl;
     if (apiData.image) {
-      imageUrl = apiData.image;
+      imageUrl = apiData.image.replace('http://', 'https://');
     } else if (apiData.external_image) {
-      imageUrl = apiData.external_image;
+      imageUrl = apiData.external_image.replace('http://', 'https://');
     } else {
       imageUrl = "nopicture.png";
       localImage = true;
     }
 
-    console.log(typeof(isbn));
     const book = await Book.findOrCreate({
       where: { isbn },
       defaults: {
@@ -623,8 +632,8 @@ async function getBookFromSlug(ctx) {
   }
 }
 
-router.post('/publish/manual', publishBookManually);
-router.post('/publish/isbn', publishBookFromIsbn);
+router.post('/publish/manual', authAdmin, publishBookManually);
+router.post('/publish/isbn', authAdmin, publishBookFromIsbn);
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);

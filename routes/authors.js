@@ -1,6 +1,16 @@
 const router = require('koa-router')({ prefix: '/authors' });
 const { Author } = require('../models');
 
+async function authAdmin(ctx, next) {
+  try {
+    if (cookie.parse(ctx.header.cookie).admin) {
+      await next();
+    }
+  } catch (e) {
+    ctx.status = 403;
+  }
+}
+
 /**
  * @api {get} /authors Get all Authors
  * @apiName getAuthors
@@ -78,7 +88,7 @@ async function postAuthor(ctx) {
   };
 }
 
-router.post('/', postAuthor);
+router.post('/', authAdmin, postAuthor);
 router.get('/', getAuthors);
 
 module.exports = router;

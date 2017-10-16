@@ -1,6 +1,7 @@
 const router = require('koa-router')({ prefix: '/reviews' });
 const busboy = require('koa-busboy');
 const Promise = require('bluebird');
+const cookie = require('cookie');
 const _ = require('lodash');
 const { Review, Reviewer, Book } = require('../models');
 const uuidv4 = require('uuid/v4');
@@ -9,6 +10,26 @@ const uploader = busboy({
   dest: '/var/www/html/audio',
   fnDestFilename: (fieldname, filename) => `${filename}-${uuidv4()}-${fieldname}.mp3`,
 });
+
+async function authAdmin(ctx, next) {
+  try {
+    if (cookie.parse(ctx.header.cookie).admin) {
+      await next();
+    }
+  } catch (e) {
+    ctx.status = 403;
+  }
+}
+
+async function authIp(ctx, next) {
+  try {
+    if (cookie.parse(ctx.header.cookie).publishReview) {
+      await next();
+    }
+  } catch (e) {
+    ctx.status = 403;
+  }
+}
 
 /**
  * @api {get} /reviews Get all reviews from Book
@@ -311,10 +332,11 @@ async function getInactiveReviews(ctx) {
   };
 }
 
-router.patch('/', activateReviews);
-router.patch('/audio/edit', uploader, editReviewAudio);
-router.post('/', uploader, publishReview);
+
+router.patch('/', authAdmin, activateReviews);
+router.patch('/audio/edit', authAdmin, uploader, editReviewAudio);
+router.post('/', authIp, uploader, publishReview);
 router.get('/id/:id', getReviewsFromBook);
-router.get('/inactive', getInactiveReviews);
+router.get('/inactive', authAdmin, getInactiveReviews);
 
 module.exports = router;

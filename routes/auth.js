@@ -7,7 +7,7 @@ async function authAdmin(ctx) {
     let auth = false;
 
     if (username == config.auth.username && password == config.auth.password) {
-        ctx.cookies.set('admin', true);
+        ctx.cookies.set('admin', true, { maxAge: 3600000 });
         auth = true;
     }
 
@@ -16,11 +16,17 @@ async function authAdmin(ctx) {
     };
 }
 
+async function logoutAdmin(ctx) {
+    ctx.cookies.set('admin', false, { maxAge: 1 });
+    ctx.body = {
+        auth: false,
+    };
+}
+
 async function authIp(ctx) {
     const ip = ctx.ip;
     let ipAuth = false;
     const index = (_.indexOf(config.allowedToPublish, ip));
-    console.log(index);
 
     if (index > -1) {
         ctx.cookies.set('publishReview', true);
@@ -34,5 +40,6 @@ async function authIp(ctx) {
 
 router.post('/admin', authAdmin);
 router.get('/', authIp);
+router.get('/logout', logoutAdmin);
 
 module.exports = router;

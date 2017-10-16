@@ -4,20 +4,16 @@ const bodyParser = require('koa-bodyparser');
 const config = require('./config.json');
 const cors = require('koa2-cors');
 const models = require('./models');
-const session = require('koa-session');
+const session = require('koa-session2');
 
 const app = new Koa();
 require('koa-qs')(app, 'strict');
 
+app.keys = ['secret', config.secret];
 
-app.keys = config.secret;
-
-const CONFIG = {
-  httpOnly: false,
-};
 // Set up body parsing middleware
 app.use(bodyParser());
-app.use(session(CONFIG, app));
+app.use(session());
 
 
 // Enable CORS

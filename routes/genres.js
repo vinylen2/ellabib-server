@@ -1,6 +1,16 @@
 const router = require('koa-router')({ prefix: '/genres' });
 const { Genre } = require('../models');
 
+async function authAdmin(ctx, next) {
+  try {
+    if (cookie.parse(ctx.header.cookie).admin) {
+      await next();
+    }
+  } catch (e) {
+    ctx.status = 403;
+  }
+}
+
 function slugify(text) {
   return text.toString().toLowerCase()
   .replace(/\s+/g, '-')           // Replace spaces with -
@@ -91,7 +101,7 @@ async function postGenre(ctx) {
   };
 }
 
-router.post('/', postGenre);
+router.post('/', authAdmin, postGenre);
 router.get('/', getGenres);
 
 module.exports = router;
