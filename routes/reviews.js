@@ -3,7 +3,7 @@ const busboy = require('koa-busboy');
 const Promise = require('bluebird');
 const cookie = require('cookie');
 const _ = require('lodash');
-const { Review, Reviewer, Book } = require('../models');
+const { Review, Reviewer, Book, connection } = require('../models');
 const uuidv4 = require('uuid/v4');
 
 const uploader = busboy({
@@ -230,6 +230,20 @@ async function activateReviews(ctx) {
     let entry = await Review.findById(element.id);
     let { description, review } = element;
     return entry.update({ active: true, description, review });
+  }));
+
+  const updatedRatings = await Promise.all(reviews.map(async (element) => {
+    const bookId = element.books[0].id;
+    const ratingQuery = await connection.query(`
+      SELECT books.*, AVG(reviews.rating) as rating
+      FROM books
+      INNER JOIN BookReview ON BookReview.bookId = books.id
+      INNER JOIN reviews on BookReview.reviewId = reviews.id
+      WHERE books.id = ${bookId}
+    `);
+    const rating = _.uniqBy(_.flatten(ratingQuery), 'id')[0].rating;
+    const book = await Book.findById(bookId);
+    return book.update({ rating });
   }));
 
   ctx.body = {

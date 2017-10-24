@@ -616,8 +616,9 @@ async function getBookFromSlug(ctx) {
       ],
     });
 
-    const rating = _.meanBy(book[0].reviews, (review) => review.rating);
-    book[0].dataValues.rating = rating;
+    console.log(book);
+    // const rating = _.meanBy(book[0].reviews, (review) => review.rating);
+    // book[0].dataValues.rating = rating;
 
     ctx.status = 200;
     ctx.body = {
@@ -632,12 +633,44 @@ async function getBookFromSlug(ctx) {
   }
 }
 
+async function getRecentlyReviewedBooks(ctx) {
+  const reviews = await Review.findAll({
+    where: {
+      active: true,
+    },
+    limit: 5,
+    order: [['createdAt', 'DESC']],
+    include: [
+      { model: Book, as: 'books' },
+    ], 
+  });
+
+  ctx.body = {
+    data: _.flatten(_.map(reviews, 'books')),
+    message:'Success',
+  };
+}
+
+async function getHighestRatedBooks(ctx) {
+  const books = await Book.findAll({
+    limit: 5,
+    order: [['rating', 'DESC']],
+  });
+
+  ctx.body = {
+    data: books,
+    message: 'Success',
+  }
+}
+
 router.post('/publish/manual', authAdmin, publishBookManually);
 router.post('/publish/isbn', authAdmin, publishBookFromIsbn);
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);
 router.get('/', getAllBooks);
+router.get('/recently/reviewed', getRecentlyReviewedBooks);
+router.get('/highest', getHighestRatedBooks);
 router.get('/search', searchForBooks);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
 
