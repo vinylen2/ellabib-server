@@ -24,7 +24,7 @@ async function logoutAdmin(ctx) {
 }
 
 async function authIp(ctx) {
-    const ip = ctx.ip;
+    const ip = ctx.request.ip;
     let ipAuth = false;
     const index = (_.indexOf(config.allowedToPublish, ip));
 

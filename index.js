@@ -10,6 +10,7 @@ const app = new Koa();
 require('koa-qs')(app, 'strict');
 
 app.keys = ['secret', config.secret];
+app.proxy = true;
 
 // Set up body parsing middleware
 app.use(bodyParser());

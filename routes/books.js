@@ -176,9 +176,18 @@ async function searchForBooks(ctx) {
     const genreQuery = Promise
       .all(queryArray.map(query => Genre.findAll({
         where: { 
-          name: { 
-            $like: `${query}%`, 
-          },
+          $or: [
+            {
+              name: { 
+                $like: `${query}%`, 
+              },
+            },
+            {
+              slug: { 
+                $like: `${query}%`, 
+              },
+            },
+          ],
         },
         include: [{
           model: Book,
@@ -232,7 +241,14 @@ async function searchForBooksWithGenre(ctx) {
     const booksFromGenre = Promise
       .all(queryArray.map(query => Genre.findAll({
           where: { 
-            name: genre,
+            $or: [
+              {
+                name: genre,
+              },
+              {
+                slug: genre,
+              },
+            ],
           },
           include: [{
             model: Book,
@@ -265,7 +281,14 @@ async function searchForBooksWithGenre(ctx) {
           include: [{
             model: Genre,
             where: {
-              name: genre,
+              $or: [
+                {
+                  name: genre,
+                },
+                {
+                  slug: genre,
+                },
+              ],
             },
           }],
         }],
