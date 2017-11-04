@@ -23,10 +23,11 @@ async function authAdmin(ctx, next) {
 
 async function authIp(ctx, next) {
   try {
-    if (cookie.parse(ctx.header.cookie).publishReview) {
+    if (cookie.parse(ctx.header.cookie).publishReview || cookie.parse(ctx.header.cookie).admin) {
       await next();
     }
   } catch (e) {
+    console.log(e);
     ctx.status = 403;
   }
 }
@@ -161,6 +162,7 @@ async function getReviewsFromBook(ctx) {
  *
  */
 async function publishReview(ctx) {
+  console.log('got here');
   const { description, review, reviewerId, bookId, rating } = ctx.request.body;
   const files = ctx.request.files;
 
@@ -346,11 +348,24 @@ async function getInactiveReviews(ctx) {
   };
 }
 
+async function getReviewCount(ctx) {
+  const allActiveReviews = await Review.count({
+    where: {
+      active: true,
+    },
+  });
+
+  ctx.body = {
+    data: allActiveReviews,
+    message: 'Number of active reviews.',
+  };
+}
 
 router.patch('/', authAdmin, activateReviews);
 router.patch('/audio/edit', authAdmin, uploader, editReviewAudio);
 router.post('/', authIp, uploader, publishReview);
 router.get('/id/:id', getReviewsFromBook);
+router.get('/count', getReviewCount);
 router.get('/inactive', authAdmin, getInactiveReviews);
 
 module.exports = router;

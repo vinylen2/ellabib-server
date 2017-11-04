@@ -3,6 +3,7 @@ const Promise = require('bluebird');
 const _ = require('lodash');
 const axios = require('axios');
 const cookie = require('cookie');
+const slugify = require('slugify');
 const { Book, Genre, Author, Review, Reviewer } = require('../models');
 const bokhavetApi = require('../config.json').bokhavetApi;
 
@@ -14,15 +15,6 @@ async function authAdmin(ctx, next) {
   } catch (e) {
     ctx.status = 403;
   }
-}
-
-function slugify(text) {
-  return text.toString().toLowerCase()
-  .replace(/\s+/g, '-')           // Replace spaces with -
-  .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
-  .replace(/\-\-+/g, '-')         // Replace multiple - with single -
-  .replace(/^-+/, '')             // Trim - from start of text
-  .replace(/-+$/, '');            // Trim - from end of text
 }
 
 function flattenQueries(array) {
@@ -94,7 +86,6 @@ function flattenAndUnique(array) {
  *
  */
 async function getAllBooks(ctx) {
-  console.log(ctx.body);
   const queryObject = ctx.request.query;
   let offset = 0;
   let limit = 40;
@@ -639,7 +630,6 @@ async function getBookFromSlug(ctx) {
       ],
     });
 
-    console.log(book);
     // const rating = _.meanBy(book[0].reviews, (review) => review.rating);
     // book[0].dataValues.rating = rating;
 
@@ -661,7 +651,7 @@ async function getRecentlyReviewedBooks(ctx) {
     where: {
       active: true,
     },
-    limit: 5,
+    limit: 10,
     order: [['createdAt', 'DESC']],
     include: [
       { model: Book, as: 'books' },
@@ -686,6 +676,28 @@ async function getHighestRatedBooks(ctx) {
   }
 }
 
+async function getCount(ctx) {
+  const allActiveReviews = await Review.count({
+    where: {
+      active: true,
+    },
+  });
+
+  const allBooks = await Book.count();
+
+  ctx.body = {
+    data: {
+      books: {
+        count: allBooks,
+      },
+      reviews: {
+        count: allActiveReviews,
+      },
+    },
+    message: 'Number of and active reviews.',
+  };
+}
+
 router.post('/publish/manual', authAdmin, publishBookManually);
 router.post('/publish/isbn', authAdmin, publishBookFromIsbn);
 router.get('/id/:id', getBook);
@@ -695,6 +707,7 @@ router.get('/', getAllBooks);
 router.get('/recently/reviewed', getRecentlyReviewedBooks);
 router.get('/highest', getHighestRatedBooks);
 router.get('/search', searchForBooks);
+router.get('/count', getCount);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
 
 module.exports = router;
