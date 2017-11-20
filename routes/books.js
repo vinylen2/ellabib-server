@@ -425,16 +425,26 @@ async function publishBookFromIsbn(ctx) {
     book[0].setGenres(genre);
     book[0].setAuthors(author[0]);
 
-    ctx.body = {
-      data: book[0],
-      added: true,
-      message: 'a message',
-    };
+    console.log(book);
+    if (!book[1]) {
+      ctx.body = {
+        data: book[0],
+        added: false,
+        message: 'Boken finns redan',
+      };
+    } else {
+      ctx.body = {
+        data: book[0],
+        added: true,
+        message: 'Bok tillagd',
+      };
+    }
 
   } catch (e) {
     ctx.body = {
+      status: 400,
       added: false,
-      message: 'No book for ISBN',
+      message: 'Hittade ingen bok från ISBN.',
     };
   }
 }
