@@ -86,31 +86,36 @@ function flattenAndUnique(array) {
  *
  */
 async function getAllBooks(ctx) {
-  const queryObject = ctx.request.query;
-  let offset = 0;
-  let limit = 40;
+  const books = await Book.findAll({
+    attributes: {
+      exclude: ['updatedAt'],
+    },
+  });
+  // const queryObject = ctx.request.query;
+  // let offset = 0;
+  // let limit = 100;
 
-  if ('offset' in queryObject) {
-    offset = parseInt(queryObject.offset);
-  }
+  // if ('offset' in queryObject) {
+  //   offset = parseInt(queryObject.offset);
+  // }
 
-  const books = await Book.findAndCountAll({
-      limit,
-      offset,
-      attributes: {
-        exclude: ['updatedAt'],
-      },
-    });
+  // const books = await Book.findAndCountAll({
+  //     limit,
+  //     offset,
+  //     attributes: {
+  //       exclude: ['updatedAt'],
+  //     },
+  //   });
 
-  const range = {
-    start: offset + 1,
-    last: books.count,
-    limit: limit,
-  };
+  // const range = {
+  //   start: offset + 1,
+  //   last: books.count,
+  //   limit: limit,
+  // };
 
   ctx.body = {
-    data: books.rows,
-    range,
+    data: books,
+    // range,
     message: 'a message',
   };
 }

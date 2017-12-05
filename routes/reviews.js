@@ -162,7 +162,6 @@ async function getReviewsFromBook(ctx) {
  *
  */
 async function publishReview(ctx) {
-  console.log('got here');
   const { description, review, reviewerId, bookId, rating } = ctx.request.body;
   const files = ctx.request.files;
 
@@ -361,8 +360,32 @@ async function getReviewCount(ctx) {
   };
 }
 
+async function incrementReviewPlay(ctx) {
+  const { reviewId, type } = ctx.request.body;
+  // const reviewId = 7;
+  // const type = 'review';
+  const reviewToIncrement = await Review.findById(reviewId);
+
+  if (type === 'review') {
+    const value = reviewToIncrement.reviewPlays + 1;
+    const incrementedReview = await reviewToIncrement.update({
+      reviewPlays: value,
+    });
+    return true;
+  }
+  const value = reviewToIncrement.descriptionPlays + 1;
+  const incrementedReview = await reviewToIncrement.update({
+    descriptionPlays: value,
+  });
+
+  ctx.body = {
+    data: incrementedReview,
+  };
+}
+
 router.patch('/', authAdmin, activateReviews);
 router.patch('/audio/edit', authAdmin, uploader, editReviewAudio);
+router.patch('/increment', incrementReviewPlay);
 router.post('/', authIp, uploader, publishReview);
 router.get('/id/:id', getReviewsFromBook);
 router.get('/count', getReviewCount);
