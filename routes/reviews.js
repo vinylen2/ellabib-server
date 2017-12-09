@@ -362,8 +362,6 @@ async function getReviewCount(ctx) {
 
 async function incrementReviewPlay(ctx) {
   const { reviewId, type } = ctx.request.body;
-  // const reviewId = 7;
-  // const type = 'review';
   const reviewToIncrement = await Review.findById(reviewId);
 
   if (type === 'review') {

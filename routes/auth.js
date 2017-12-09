@@ -6,7 +6,7 @@ async function authAdmin(ctx) {
     const { username, password } = ctx.request.body;
     let auth = false;
 
-    if (username == config.auth.username && password == config.auth.password) {
+    if (username.toLowerCase() == config.auth.username && password == config.auth.password) {
         ctx.cookies.set('admin', true, { maxAge: 3600000 });
         auth = true;
     }

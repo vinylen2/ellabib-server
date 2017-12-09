@@ -713,8 +713,43 @@ async function getCount(ctx) {
   };
 }
 
+async function editBook(ctx) {
+  const { bookId, authorId, genreId, title, pages } = ctx.request.body;
+  console.log(ctx.request.body);
+
+  try {
+    const book = await Book.findById(bookId);
+    const genre = await Genre.findById(genreId);
+    const author = await Author.findById(authorId);
+
+    const newBook = await book.update({
+      title,
+      pages,
+    });
+
+    book.setGenres(genre);
+    book.setAuthors(author);
+
+    ctx.body = { 
+      data: book,
+      message: 'Book updated',
+    };
+
+  } catch (e) {
+    ctx.body = {
+      status: 400,
+    };
+  }
+
+
+
+
+
+}
+
 router.post('/publish/manual', authAdmin, publishBookManually);
 router.post('/publish/isbn', authAdmin, publishBookFromIsbn);
+router.patch('/edit/', authAdmin, editBook);
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);
