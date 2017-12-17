@@ -3,11 +3,17 @@ const busboy = require('koa-busboy');
 const Promise = require('bluebird');
 const cookie = require('cookie');
 const _ = require('lodash');
+const moment = require('moment');
 const { Review, Reviewer, Book, connection } = require('../models');
 const uuidv4 = require('uuid/v4');
+const fs = require('fs');
+const { promisify } = require('util');
+const unlink = promisify(fs.unlink);
+
+const filedest = '/var/www/html/audio';
 
 const uploader = busboy({
-  dest: '/var/www/html/audio',
+  dest: filedest,
   fnDestFilename: (fieldname, filename) => `${filename}-${uuidv4()}-${fieldname}.mp3`,
 });
 
@@ -225,16 +231,23 @@ async function publishReview(ctx) {
  *
  */
 async function activateReviews(ctx) {
-  const { reviews } = ctx.request.body;
+  const reviews = ctx.request.body;
 
-  const activatedReviews = await Promise.all(reviews.map(async (element) => {
-    let entry = await Review.findById(element.id);
-    let { description, review } = element;
-    return entry.update({ active: true, description, review });
+  const activatedReviews = await Promise.all(reviews.map(async (id) => {
+    let entry = await Review.findById(id);
+    return entry.update({ active: true });
   }));
 
-  const updatedRatings = await Promise.all(reviews.map(async (element) => {
-    const bookId = element.books[0].id;
+  const updatedRatings = await Promise.all(reviews.map(async (id) => {
+    const book = await Book.findAll({
+      include: [
+        { model: Review,
+          where: { id, },
+          as: 'reviews',
+        },
+      ],
+    });
+    const bookId = book[0].id;
     const ratingQuery = await connection.query(`
       SELECT books.*, AVG(reviews.rating) as rating
       FROM books
@@ -243,8 +256,7 @@ async function activateReviews(ctx) {
       WHERE books.id = ${bookId}
     `);
     const rating = _.uniqBy(_.flatten(ratingQuery), 'id')[0].rating;
-    const book = await Book.findById(bookId);
-    return book.update({ rating });
+    return book[0].update({ rating });
   }));
 
   ctx.body = {
@@ -271,7 +283,7 @@ async function editReviewAudio(ctx) {
   });
 
   const reviewData = await Review.findById(reviewId);
-  // insert reloacting old audiofiles here.
+  // insert relocating old audiofiles here.
   console.log(reviewData);
 
   const editedReview = reviewData.update({
@@ -332,6 +344,7 @@ async function editReviewAudio(ctx) {
  *
  */
 async function getInactiveReviews(ctx) {
+  moment.locale('sv');
   const inactiveReviews = await Review.findAll({
     where: {
       active: false,
@@ -339,6 +352,13 @@ async function getInactiveReviews(ctx) {
     include: [
       { model: Book, exclude: ['createdAt', 'updatedAt'] },
     ],
+  });
+
+  inactiveReviews.forEach((review) => {
+    review.dataValues.title = review.books[0].title;
+    review.dataValues.slug = review.books[0].slug;
+    review.dataValues.date = moment(review.createdAt).format('DD/MM-YY');
+    review.dataValues.time = moment(review.createdAt).format('hh:mm');
   });
 
   ctx.body = {
@@ -381,12 +401,88 @@ async function incrementReviewPlay(ctx) {
   };
 }
 
-router.patch('/', authAdmin, activateReviews);
+async function updateReviewRating(ctx) {
+  const { reviewId, rating } = ctx.request.body;
+  const reviewToUpdate = await Review.findById(reviewId);
+
+  const updatedReview = await reviewToUpdate.update({
+    rating
+  });
+
+  ctx.body = {
+    data: updatedReview,
+  };
+}
+
+async function updateReviewText(ctx) {
+  const { reviewId, type, text } = ctx.request.body;
+  const reviewToUpdate = await Review.findById(reviewId);
+
+  let updatedReview;
+  if (type === 'review') {
+    updatedReview = await reviewToUpdate.update({
+      review: text,
+    });
+  } else {
+    updatedReview = await reviewToUpdate.update({
+      description: text,
+    });
+  } 
+
+  ctx.body = {
+    data: updatedReview,
+  };
+}
+
+async function deleteReview(ctx) {
+  const { reviewId } = ctx.request.body;
+  const reviewToDelete = await Review.findById(reviewId);
+  const { descriptionAudioUrl, reviewAudioUrl } = reviewToDelete;
+
+  const deleted = await reviewToDelete.destroy();
+
+  let descriptionAudio = true;
+  let reviewAudio = true;
+
+  try {
+    await unlink(filedest + descriptionAudioUrl);
+    console.log('deleted', descriptionAudioUrl);
+  } catch (e) {
+    descriptionAudio = e.code;
+  }
+  try {
+    await unlink(filedest + reviewAudioUrl);
+    console.log('deleted', reviewAudioUrl);
+  } catch (e) {
+    reviewAudio = e.code;
+  }
+
+  ctx.body = {
+    data: {
+      deleted,
+      descriptionAudio,
+      reviewAudio,
+    },
+  };
+}
+
 router.patch('/audio/edit', authAdmin, uploader, editReviewAudio);
 router.patch('/increment', incrementReviewPlay);
 router.post('/', authIp, uploader, publishReview);
 router.get('/id/:id', getReviewsFromBook);
 router.get('/count', getReviewCount);
-router.get('/inactive', authAdmin, getInactiveReviews);
 
+// dev routes
+// router.patch('/delete', deleteReview);
+// router.patch('/', activateReviews);
+// router.patch('/rating', updateReviewRating);
+// router.patch('/text', updateReviewText);
+// router.get('/inactive', getInactiveReviews);
+
+// sharp routes
+router.patch('/delete', authAdmin, deleteReview);
+router.patch('/', authAdmin, activateReviews);
+router.patch('/rating', authAdmin, updateReviewRating);
+router.patch('/text', authAdmin, updateReviewText);
+router.get('/inactive', authAdmin, getInactiveReviews);
 module.exports = router;

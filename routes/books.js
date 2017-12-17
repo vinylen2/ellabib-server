@@ -645,9 +645,6 @@ async function getBookFromSlug(ctx) {
       ],
     });
 
-    // const rating = _.meanBy(book[0].reviews, (review) => review.rating);
-    // book[0].dataValues.rating = rating;
-
     ctx.status = 200;
     ctx.body = {
       data: book[0],
@@ -674,7 +671,7 @@ async function getRecentlyReviewedBooks(ctx) {
   });
 
   ctx.body = {
-    data: _.flatten(_.map(reviews, 'books')),
+    data: _.uniqBy(_.flatten(_.map(reviews, 'books')), 'id'),
     message:'Success',
   };
 }
