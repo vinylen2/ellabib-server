@@ -11,6 +11,7 @@ const { promisify } = require('util');
 const unlink = promisify(fs.unlink);
 
 const filedest = '/var/www/html/audio';
+// const filedest = '/Users/gabriel/ellabib_audio';
 
 const uploader = busboy({
   dest: filedest,
@@ -439,29 +440,23 @@ async function deleteReview(ctx) {
   const reviewToDelete = await Review.findById(reviewId);
   const { descriptionAudioUrl, reviewAudioUrl } = reviewToDelete;
 
+  try {
+    await unlink(`/${filedest}/${descriptionAudioUrl}`);
+  } catch (e) {
+    console.log(e.code);
+  }
+
+  try {
+    await unlink(`/${filedest}/${reviewAudioUrl}`);
+  } catch (e) {
+    console.log(e.code);
+  }
+
   const deleted = await reviewToDelete.destroy();
-
-  let descriptionAudio = true;
-  let reviewAudio = true;
-
-  try {
-    await unlink(filedest + descriptionAudioUrl);
-    console.log('deleted', descriptionAudioUrl);
-  } catch (e) {
-    descriptionAudio = e.code;
-  }
-  try {
-    await unlink(filedest + reviewAudioUrl);
-    console.log('deleted', reviewAudioUrl);
-  } catch (e) {
-    reviewAudio = e.code;
-  }
 
   ctx.body = {
     data: {
       deleted,
-      descriptionAudio,
-      reviewAudio,
     },
   };
 }
