@@ -4,8 +4,11 @@ const _ = require('lodash');
 const axios = require('axios');
 const cookie = require('cookie');
 const slugify = require('slugify');
-const { Book, Genre, Author, Review, Reviewer } = require('../models');
+const { Book, Genre, Author, Review, User } = require('../models');
 const bokhavetApi = require('../config.json').bokhavetApi;
+const bokInfoApi = require('../config.json').bokInfo;
+const onix = require('onix');
+const parseString = require('xml2js').parseStringPromise;
 
 async function authAdmin(ctx, next) {
   try {
@@ -548,20 +551,55 @@ async function getBook(ctx) {
 
 async function getBookFromIsbn(ctx) {
   const isbn = ctx.params.isbn;
-  const libraryId = ctx.params.isbn;
-  const book = await Book.findAll({
-    where: {
-      $or: [
-        { isbn },
-        { libraryId }, 
-      ],
-    }
-    // where: { isbn },
+
+  const API = axios.create({
+    baseURL: bokInfoApi.url,
+    headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
   });
 
-  ctx.body = {
-    data: book[0],
-    message: 'a message',
+  try {
+    const bookInfo = await API.get(`/get/${isbn}`);
+    const result = await parseString(bookInfo.data)
+
+    let pages = result.ONIXMessage.Product[0].DescriptiveDetail[0].Extent[0].ExtentValue[0];
+    let title = result.ONIXMessage.Product[0].DescriptiveDetail[0].TitleDetail[0].TitleElement[0].TitleText[0];
+
+    let imageUrl = result.ONIXMessage.Product[0].CollateralDetail[0].SupportingResource[0].ResourceVersion[0].ResourceLink[0];
+    let description = result.ONIXMessage.Product[0].CollateralDetail[0].TextContent[0].Text[0];
+
+    const author = await findOrCreateAuthor(result.ONIXMessage.Product[0].DescriptiveDetail[0].Contributor[0].NamesBeforeKey[0], result.ONIXMessage.Product[0].DescriptiveDetail[0].Contributor[0].KeyNames[0]);
+
+    ctx.body = {
+      data: {
+        stuff: result.ONIXMessage.Product[0],
+        title,
+        description,
+        pages,
+        imageUrl,
+        author,
+      },
+    };
+  }
+  catch (e) {
+    ctx.body = {
+      message: 'Hittade ingen bok.',
+    };
+  }
+
+  async function findOrCreateAuthor(firstname, lastname) {
+      const author = await Author.findOrCreate({
+        where: {
+          firstname,
+          lastname
+        },
+      })
+      return {
+        id: author[0].dataValues.id,
+        firstname: author[0].dataValues.firstname,
+        lastname: author[0].dataValues.lastname,
+        fullName: author[0].dataValues.firstname + ' ' + author[0].dataValues.lastname,
+        newlyCreated: author[1],
+      };
   };
 }
 /**
@@ -639,7 +677,7 @@ async function getBookFromSlug(ctx) {
           as: 'reviews',
           required: false,
           include: [
-            { model: Reviewer },
+            { model: User },
           ],
         },
       ],
@@ -737,11 +775,16 @@ async function editBook(ctx) {
       status: 400,
     };
   }
+}
 
-
-
-
-
+async function cleanUp(ctx) {
+  const books = await Book.findAll();
+  const imageUrls = [];
+  books.forEach((book) => {
+    if (book.imageUrl !== 'nopicture.png') {
+      imageUrls.push(book.imageUrl);
+    }
+  });
 }
 
 router.post('/publish/manual', authAdmin, publishBookManually);
@@ -755,6 +798,7 @@ router.get('/recently/reviewed', getRecentlyReviewedBooks);
 router.get('/highest', getHighestRatedBooks);
 router.get('/search', searchForBooks);
 router.get('/count', getCount);
+router.get('/cleanup', cleanUp);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
 
 module.exports = router;

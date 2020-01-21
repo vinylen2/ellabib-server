@@ -29,10 +29,12 @@
     "koa2-cors": "^2.0.3",
     "lodash": "^4.17.4",
     "mysql2": "^1.3.5",
+    "onix": "^1.0.3",
     "quagga": "git+https://github.com/kmdwebdesigns/quaggaJS.git",
     "sequelize": "^4.2.1",
     "slugify": "^1.2.1",
-    "uuid": "^3.1.0"
+    "uuid": "^3.1.0",
+    "xml2js": "^0.4.23"
   },
   "devDependencies": {
     "babel-eslint": "^7.2.3",

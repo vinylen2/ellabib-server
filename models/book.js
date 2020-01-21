@@ -13,6 +13,7 @@ module.exports = function modelExport(db, DataTypes) {
     localImage: DataTypes.BOOLEAN,
     isbn: DataTypes.STRING(13),
     libraryId: DataTypes.INTEGER,
+    originalDescription: DataTypes.STRING,
     rating: DataTypes.INTEGER,
   });
 

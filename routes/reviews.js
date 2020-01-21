@@ -349,6 +349,7 @@ async function getInactiveReviews(ctx) {
   const inactiveReviews = await Review.findAll({
     where: {
       active: false,
+      deleted: false,
     },
     include: [
       { model: Book, exclude: ['createdAt', 'updatedAt'] },
@@ -437,22 +438,26 @@ async function updateReviewText(ctx) {
 
 async function deleteReview(ctx) {
   const { reviewId } = ctx.request.body;
-  const reviewToDelete = await Review.findById(reviewId);
-  const { descriptionAudioUrl, reviewAudioUrl } = reviewToDelete;
+  const review = await Review.findById(reviewId);
+  const { descriptionAudioUrl, reviewAudioUrl } = review;
 
-  try {
-    await unlink(`/${filedest}/${descriptionAudioUrl}`);
-  } catch (e) {
-    console.log(e.code);
-  }
+  // try {
+  //   await unlink(`/${filedest}/${descriptionAudioUrl}`);
+  // } catch (e) {
+  //   console.log(e.code);
+  // }
 
-  try {
-    await unlink(`/${filedest}/${reviewAudioUrl}`);
-  } catch (e) {
-    console.log(e.code);
-  }
+  // try {
+  //   await unlink(`/${filedest}/${reviewAudioUrl}`);
+  // } catch (e) {
+  //   console.log(e.code);
+  // }
 
-  const deleted = await reviewToDelete.destroy();
+  const deleted = await review.update({
+    active: false,
+    deleted: true,
+  });
+  // const deleted = await reviewToDelete.destroy();
 
   ctx.body = {
     data: {

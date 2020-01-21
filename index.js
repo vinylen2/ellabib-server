@@ -20,6 +20,7 @@ app.use(session());
 // Enable CORS
 app.use(cors({
   origin: 'http://localhost:8080',
+  // origin: 'http://169.254.114.44:8080',
   credentials: true,
   allowMethods: ['GET', 'PATCH', 'POST'],
   allowHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept'],

@@ -13,11 +13,15 @@ module.exports = function modelExport(db, DataTypes) {
     reviewAudioUrl: DataTypes.STRING,
     reviewPlays: DataTypes.INTEGER,
     active: DataTypes.BOOLEAN,
+    deleted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   });
 
   Model.associate = function (models) {
     this.belongsToMany(models.Book, { through: 'BookReview' });
-    this.belongsToMany(models.Reviewer, { through: 'BookReviewer' });
+    this.belongsToMany(models.User, { through: 'BookReviewer' });
   };
 
   return Model;

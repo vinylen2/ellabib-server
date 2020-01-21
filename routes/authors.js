@@ -1,4 +1,5 @@
 const router = require('koa-router')({ prefix: '/authors' });
+const cookie = require('cookie');
 const { Author } = require('../models');
 
 async function authAdmin(ctx, next) {
@@ -76,7 +77,6 @@ async function getAuthors(ctx) {
 
 async function postAuthor(ctx) {
   const { firstname, lastname } = ctx.request.body;
-  console.log(firstname, lastname);
   const author = await Author.create({
     firstname,
     lastname,
