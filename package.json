@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/vinylen2/ellabib-server#readme",
   "dependencies": {
-    "axios": "^0.16.2",
+    "axios": "^0.19.1",
     "bluebird": "^3.5.0",
     "cookie": "^0.3.1",
     "koa": "^2.3.0",
