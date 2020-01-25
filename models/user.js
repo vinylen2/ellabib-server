@@ -7,6 +7,9 @@ module.exports = function modelExport(db, DataTypes) {
     firstName: DataTypes.STRING,
     lastName: DataTypes.STRING,
     extId: DataTypes.STRING,
+    pagesRead: DataTypes.INTEGER,
+    booksRead: DataTypes.INTEGER,
+    reviewsWritten: DataTypes.INTEGER,
   });
 
   Model.associate = function (models) {

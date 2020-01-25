@@ -17,7 +17,9 @@ module.exports = function modelExport(db, DataTypes) {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    simple: DataTypes.BOOLEAN,
   });
+
 
   Model.associate = function (models) {
     this.belongsToMany(models.Book, { through: 'BookReview' });

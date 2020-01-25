@@ -4,7 +4,7 @@ const Promise = require('bluebird');
 const cookie = require('cookie');
 const _ = require('lodash');
 const moment = require('moment');
-const { Review, Reviewer, Book, connection } = require('../models');
+const { Review, User, Book, connection } = require('../models');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const { promisify } = require('util');
@@ -102,10 +102,10 @@ async function getReviewsFromBook(ctx) {
     where: { id: bookId },
     include: [
       { model: Review,
-        where: { active: true },
+        where: { active: true, simple: false, },
         as: 'reviews',
         include: [
-          { model: Reviewer },
+          { model: User },
         ],
       },
     ],
@@ -188,7 +188,7 @@ async function publishReview(ctx) {
   }
 
   const book = await Book.findById(bookId);
-  const reviewer = await Reviewer.findById(reviewerId);
+  const user = await User.findById(reviewerId);
   const publishedReview = await Review.create({
     description,
     descriptionAudioUrl,
@@ -198,14 +198,39 @@ async function publishReview(ctx) {
     active: false,
   });
 
-  publishedReview.addReviewers(reviewer);
+  publishedReview.addUsers(user);
   publishedReview.addBooks(book)
+  Book.updateRating(book, Review, bookId);
 
   ctx.body = {
     data: publishedReview,
     message: 'a message',
   };
 }
+
+async function publishSimpleReview(ctx) {
+  const { rating, bookId, userId } = ctx.request.body;
+
+  const book = await Book.findById(bookId);
+  const user = await User.findById(userId);
+
+  const review = await Review.create({
+    rating,
+    active: true,
+    simple: true,
+  });
+
+  review.addUsers(user);
+  review.addBooks(book);
+  Book.updateRating(book, Review, bookId);
+  Book.increment({readCount: 1}, { where: { id: bookId }});
+
+
+  ctx.body = {
+    data: review,
+    message: 'Betyg publicerat!',
+  };
+};
 
 
 /**
@@ -466,11 +491,18 @@ async function deleteReview(ctx) {
   };
 }
 
+async function updateRating() {
+  Book.increment({readCount: 1}, { where: { id: 5 }});
+
+};
+
 router.patch('/audio/edit', authAdmin, uploader, editReviewAudio);
 router.patch('/increment', incrementReviewPlay);
 router.post('/', authIp, uploader, publishReview);
+router.post('/simple', publishSimpleReview);
 router.get('/id/:id', getReviewsFromBook);
 router.get('/count', getReviewCount);
+router.get('/update', updateRating);
 
 // dev routes
 // router.patch('/delete', deleteReview);

@@ -552,39 +552,59 @@ async function getBook(ctx) {
 async function getBookFromIsbn(ctx) {
   const isbn = ctx.params.isbn;
 
-  const API = axios.create({
-    baseURL: bokInfoApi.url,
-    headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
+  const book = await Book.findAll({
+    where: {
+      isbn,
+    },
+    include: [
+      { model: Genre, as: 'genres' },
+      { model: Author, as: 'authors' },
+    ],
   });
 
-  try {
-    const bookInfo = await API.get(`/get/${isbn}`);
-    const result = await parseString(bookInfo.data)
+  if (book.length == 0) {
+    try {
+      const API = axios.create({
+        baseURL: bokInfoApi.url,
+        headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
+      });
 
-    let pages = result.ONIXMessage.Product[0].DescriptiveDetail[0].Extent[0].ExtentValue[0];
-    let title = result.ONIXMessage.Product[0].DescriptiveDetail[0].TitleDetail[0].TitleElement[0].TitleText[0];
+      const bookInfo = await API.get(`/get/${isbn}`);
+      const feed = onix.parse(bookInfo.data, '3.0');
 
-    let imageUrl = result.ONIXMessage.Product[0].CollateralDetail[0].SupportingResource[0].ResourceVersion[0].ResourceLink[0];
-    let description = result.ONIXMessage.Product[0].CollateralDetail[0].TextContent[0].Text[0];
+      // const result = await parseString(bookInfo.data)
+      let imageUrl = getResourceLink(feed);
+      let pages = getPages(feed);
+      let title = getTitle(feed);
+      let originalDescription = getDescription(feed);
 
-    const author = await findOrCreateAuthor(result.ONIXMessage.Product[0].DescriptiveDetail[0].Contributor[0].NamesBeforeKey[0], result.ONIXMessage.Product[0].DescriptiveDetail[0].Contributor[0].KeyNames[0]);
+      const author = await findOrCreateAuthor(getAuthorFirstname(feed), getAuthorLastname(feed));
 
+      ctx.body = {
+        data: {
+          title,
+          originalDescription,
+          pages,
+          imageUrl,
+          author,
+        },
+        newBook: true,
+      };
+    }
+    catch (e) {
+      ctx.body = {
+        data: null,
+        message: 'Hittade ingen bok.',
+        newBook: false,
+      };
+    }
+  } else {
     ctx.body = {
-      data: {
-        stuff: result.ONIXMessage.Product[0],
-        title,
-        description,
-        pages,
-        imageUrl,
-        author,
-      },
+      data: book[0],
+      newBook: false,
     };
   }
-  catch (e) {
-    ctx.body = {
-      message: 'Hittade ingen bok.',
-    };
-  }
+
 
   async function findOrCreateAuthor(firstname, lastname) {
       const author = await Author.findOrCreate({
@@ -673,12 +693,12 @@ async function getBookFromSlug(ctx) {
         { model: Genre, as: 'genres' },
         { model: Author, as: 'authors' },
         { model: Review,
-          where: { active: true },
+          where: { active: true, simple: false, },
           as: 'reviews',
           required: false,
-          include: [
-            { model: User },
-          ],
+          // include: [
+          //   { model: User },
+          // ],
         },
       ],
     });
@@ -750,7 +770,6 @@ async function getCount(ctx) {
 
 async function editBook(ctx) {
   const { bookId, authorId, genreId, title, pages } = ctx.request.body;
-  console.log(ctx.request.body);
 
   try {
     const book = await Book.findById(bookId);
@@ -777,15 +796,102 @@ async function editBook(ctx) {
   }
 }
 
+function getResourceLink(feed) {
+  return feed.products[0].collateralDetail.supportingResource
+  .find(element => element.resourceContentType == 1)
+  .resourceVersion[0].resourceLink;
+};
+
+function getPages(feed) {
+  return feed.products[0].descriptiveDetail.extent
+    .find(element => element.type == 00)
+    .value;
+};
+
+function getTitle(feed) {
+  return feed.products[0].descriptiveDetail.titleDetail
+    .find(element => element.type == 01)
+    .element.text;
+};
+
+function getDescription(feed) {
+  return feed.products[0].collateralDetail.textContent
+    .find(element => element.type == 3)
+    .text;
+};
+
+function getAuthorFirstname(feed) {
+  return feed.products[0].descriptiveDetail.contributor
+    .find(element => element.sequenceNumber == 1)
+    .firstname
+};
+
+function getAuthorLastname(feed) {
+  return feed.products[0].descriptiveDetail.contributor
+    .find(element => element.sequenceNumber == 1)
+    .lastname
+};
+
 async function cleanUp(ctx) {
-  const books = await Book.findAll();
-  const imageUrls = [];
-  books.forEach((book) => {
-    if (book.imageUrl !== 'nopicture.png') {
-      imageUrls.push(book.imageUrl);
-    }
+  // const books = await Book.findAll();
+  const API = axios.create({
+    baseURL: bokInfoApi.url,
+    headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
   });
+  const bookInfo = await API.get(`/get/9789137155326`);
+  const feed = onix.parse(bookInfo.data, '3.0');
+
+  const result = await parseString(bookInfo.data)
+  let firstname = getAuthorFirstname(feed);
+  let lastname = getAuthorLastname(feed);
+  ctx.body = {
+    firstname,
+    lastname,
+    // data,
+    // result,
+  };
+
+  // books.forEach(async (book) => {
+  //   const bookInfo = await API.get(`/get/${book.isbn}`);
+  //   const feed = onix.parse(bookInfo.data, '3.0');
+  //   const imageUrl = getResourceLink(feed);
+
+  //   const newBook = await book.update({
+  //     imageUrl,
+  //     localImage: false,
+  //   });
+  // });
 }
+
+async function isReviewed(ctx) {
+  const { slug, userId } = ctx.request.body;
+
+  const book = await Book.findAll({
+    where: { slug },
+    include: [
+      { model: Review,
+        where: { active: true, simple: false, },
+        as: 'reviews',
+        required: false,
+        include: [
+          { 
+            model: User,
+            id: userId,
+          },
+        ],
+      },
+    ],
+  });
+
+  let isReviewedByUser = false;
+  if (!book) {
+    isReviewedByUser = true;
+  }
+  ctx.status = 200;
+  ctx.body = {
+    isReviewedByUser,
+  };
+};
 
 router.post('/publish/manual', authAdmin, publishBookManually);
 router.post('/publish/isbn', authAdmin, publishBookFromIsbn);
@@ -800,5 +906,6 @@ router.get('/search', searchForBooks);
 router.get('/count', getCount);
 router.get('/cleanup', cleanUp);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
+router.get('/reviewed', isReviewed);
 
 module.exports = router;
