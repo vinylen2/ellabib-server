@@ -7,14 +7,40 @@ module.exports = function modelExport(db, DataTypes) {
     firstName: DataTypes.STRING,
     lastName: DataTypes.STRING,
     extId: DataTypes.STRING,
-    pagesRead: DataTypes.INTEGER,
-    booksRead: DataTypes.INTEGER,
-    reviewsWritten: DataTypes.INTEGER,
+    pagesRead: {
+      type: DataTypes.INTEGER,
+      default: 0,
+    },
+    booksRead: {
+      type: DataTypes.INTEGER,
+      default: 0,
+    },
+    reviewsWritten: {
+      type: DataTypes.INTEGER,
+      default: 0,
+    },
   });
+
+  Model.bookRead = function (userId, type, pages) {
+    switch (type) {
+      case 'simple':
+        Model.increment({
+          pagesRead: pages,
+          booksRead: 1,
+        }, { where: { id: userId }});
+        break;
+      case 'review':
+        user.increment({
+          pagesRead: pages,
+          reviewsWritten: 1,
+        });
+        break;
+    };
+  };
 
   Model.associate = function (models) {
     this.belongsToMany(models.Review, { through: 'BookReviewer' });
-    this.belongsToMany(models.Role, { through: 'UserRoles' });
+    this.belongsTo(models.Role);
     this.belongsToMany(models.Class, { through: 'UserClass' });
     this.belongsToMany(models.SchoolUnit, { through: 'UserSchoolUnit' });
   };

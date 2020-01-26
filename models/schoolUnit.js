@@ -10,7 +10,7 @@ module.exports = function modelExport(db, DataTypes) {
 
   Model.associate = function (models) {
     this.belongsToMany(models.User, { through: 'UserSchoolUnit' });
-    this.belongsToMany(models.Class, { through: 'ClassSchoolUnit' });
+    this.hasMany(models.Class);
   };
 
   return Model;

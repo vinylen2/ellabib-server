@@ -16,7 +16,10 @@ module.exports = function modelExport(db, DataTypes) {
     libraryId: DataTypes.INTEGER,
     originalDescription: DataTypes.STRING,
     rating: DataTypes.FLOAT,
-    readCount: DataTypes.INTEGER,
+    readCount: {
+      type: DataTypes.INTEGER,
+      default: 0,
+    },
   });
 
   Model.updateRating = async function (book, Review, id) {
@@ -26,7 +29,6 @@ module.exports = function modelExport(db, DataTypes) {
         group: ['review.id'],
         attributes: [
           'rating',
-          // [ Model.fn('AVG', 'review.rating'), 'avg rating' ],
         ],
         include: [
           {

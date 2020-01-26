@@ -32,10 +32,11 @@ const books = require('./routes/books.js');
 const authors = require('./routes/authors.js');
 const reviews = require('./routes/reviews.js');
 const genres = require('./routes/genres.js');
+const user = require('./routes/user.js');
 
 app.listen(config.port);
 
-models.connection.sync({alter: true}).then(() => {
+models.connection.sync({alter: false}).then(() => {
   console.log(`Server listening on port: ${config.port}`);
   console.log('Sequelize synchronized');
   app.use(auth.routes());
@@ -43,4 +44,5 @@ models.connection.sync({alter: true}).then(() => {
   app.use(genres.routes());
   app.use(authors.routes());
   app.use(reviews.routes());
+  app.use(user.routes());
 });

@@ -5,10 +5,9 @@ const axios = require('axios');
 const cookie = require('cookie');
 const slugify = require('slugify');
 const { Book, Genre, Author, Review, User } = require('../models');
-const bokhavetApi = require('../config.json').bokhavetApi;
 const bokInfoApi = require('../config.json').bokInfo;
 const onix = require('onix');
-const parseString = require('xml2js').parseStringPromise;
+const onixGetters = require('./assets/onix-getters.js');
 
 async function authAdmin(ctx, next) {
   try {
@@ -300,163 +299,6 @@ async function searchForBooksWithGenre(ctx) {
     message: 'hej',
   };
 }
-/**
- * @api {post} /books Post new Book
- * @apiName publishBook
- * @apiGroup Books
- * @apiParamExample {json} Request-Example:
- *
- * {
-    "title": "A new Book",
-    "pages": 52,
-    "imageUrl": "/path/to/image",
-    "genreId": 1,
-    "authorId", 12
-  }
- *
- * @apiParam {String} title Title of the Book
- * @apiParam {Number} pages Amount of pages
- * @apiParam {String} imageUrl Path to image
- * @apiParam {Number} genreId GenreID for Genre associated with Book
- * @apiParam {Number} authorId AuthorID for Author associated with Book
- * @apiParam {Number} isbn Unique ISBN number for book, not required
- *
- * @apiSuccess {String} title Title of the Book
- * @apiSuccess {String} slug URL-friendly title of the Book
- * @apiSuccess {Number} views Amount of views of Book
- * @apiSuccess {Number} pages Amount of pages
- * @apiSuccess {String} imageUrl Path to image
- * @apiSuccess {Number} rating Rating of the Book
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": {
-        "title": "A new book",
-        "slug": "a-new-book",
-        "views": null,
-        "pages": 52,
-        "imageUrl": "/path/to/image",
-        "rating": null,
-        "id": 12
-      },
-      "message": "a message"
-    }
- *
- */
-async function publishBookManually(ctx) {
-  let { title, pages, imageUrl, genreId, authorId, isbn } = ctx.request.body;
-
-  const author = await Author.findById(authorId);
-
-  if (!imageUrl) {
-    imageUrl: 'nopicture.png';
-  }
-  // improvements:
-  // add support for publishing picture
-
-  const genre = await Genre.findById(genreId);
-  const publishedBook = await Book.findOrCreate({
-    where : { isbn },
-    defaults: {
-      title,
-      pages,
-      imageUrl,
-      slug: slugify(title),
-      isbn,
-    },
-  });
-
-  publishedBook[0].setGenres(genre);
-  publishedBook[0].setAuthors(author);
-
-  ctx.body = {
-    data: publishedBook,
-    message: 'a message',
-  };
-}
-
-
-async function publishBookFromIsbn(ctx) {
-  const { isbn, genreId } = ctx.request.body;
-  const adminCookie = ctx.cookies.get('admin');
-
-  try {
-    const bokhavetResponse = await axios.get(`${bokhavetApi.url}${isbn}${bokhavetApi.key}`);
-    // defining vars for book creation
-    if (!bokhavetResponse.data.success) {
-      throw('No match on ISBN');
-    }
-    const apiData = bokhavetResponse.data.data;
-    const { title, pages } = apiData;
-    const authorArray = apiData.author.split(" ");
-    const firstname = authorArray[0];
-    const lastname = authorArray[authorArray.length - 1];
-
-    const author = await Author.findOrCreate({
-      where : {
-        lastname,
-        firstname: {
-          $like: `%${firstname}%`,
-        },
-      },
-      defaults: {
-        firstname,
-        lastname,
-      },
-    });
-
-    const authorId = author[0].id;
-    let localImage = false;
-    let imageUrl;
-    if (apiData.image) {
-      imageUrl = apiData.image.replace('http://', 'https://');
-    } else if (apiData.external_image) {
-      imageUrl = apiData.external_image.replace('http://', 'https://');
-    } else {
-      imageUrl = "nopicture.png";
-      localImage = true;
-    }
-
-    const book = await Book.findOrCreate({
-      where: { isbn },
-      defaults: {
-        title,
-        pages,
-        imageUrl,
-        localImage,
-        slug: slugify(title),
-        isbn,
-      }
-    });
-    const genre = await Genre.findById(genreId);
-    book[0].setGenres(genre);
-    book[0].setAuthors(author[0]);
-
-    console.log(book);
-    if (!book[1]) {
-      ctx.body = {
-        data: book[0],
-        added: false,
-        message: 'Boken finns redan',
-      };
-    } else {
-      ctx.body = {
-        data: book[0],
-        added: true,
-        message: 'Bok tillagd',
-      };
-    }
-
-  } catch (e) {
-    ctx.body = {
-      status: 400,
-      added: false,
-      message: 'Hittade ingen bok från ISBN.',
-    };
-  }
-}
-
 
 /**
  * @api {get} /books/id/:id Get book from ID
@@ -572,11 +414,11 @@ async function getBookFromIsbn(ctx) {
       const bookInfo = await API.get(`/get/${isbn}`);
       const feed = onix.parse(bookInfo.data, '3.0');
 
-      // const result = await parseString(bookInfo.data)
-      let imageUrl = getResourceLink(feed);
-      let pages = getPages(feed);
-      let title = getTitle(feed);
-      let originalDescription = getDescription(feed);
+      // add support for no resource type
+      let imageUrl = onixGetters.getResourceLink(feed);
+      let pages = onixGetters.getPages(feed);
+      let title = onixGetters.getTitle(feed);
+      let originalDescription = onixGetters.getDescription(feed);
 
       const author = await findOrCreateAuthor(getAuthorFirstname(feed), getAuthorLastname(feed));
 
@@ -796,87 +638,43 @@ async function editBook(ctx) {
   }
 }
 
-function getResourceLink(feed) {
-  return feed.products[0].collateralDetail.supportingResource
-  .find(element => element.resourceContentType == 1)
-  .resourceVersion[0].resourceLink;
-};
-
-function getPages(feed) {
-  return feed.products[0].descriptiveDetail.extent
-    .find(element => element.type == 00)
-    .value;
-};
-
-function getTitle(feed) {
-  return feed.products[0].descriptiveDetail.titleDetail
-    .find(element => element.type == 01)
-    .element.text;
-};
-
-function getDescription(feed) {
-  return feed.products[0].collateralDetail.textContent
-    .find(element => element.type == 3)
-    .text;
-};
-
-function getAuthorFirstname(feed) {
-  return feed.products[0].descriptiveDetail.contributor
-    .find(element => element.sequenceNumber == 1)
-    .firstname
-};
-
-function getAuthorLastname(feed) {
-  return feed.products[0].descriptiveDetail.contributor
-    .find(element => element.sequenceNumber == 1)
-    .lastname
-};
 
 async function cleanUp(ctx) {
-  // const books = await Book.findAll();
-  const API = axios.create({
-    baseURL: bokInfoApi.url,
-    headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
-  });
-  const bookInfo = await API.get(`/get/9789137155326`);
-  const feed = onix.parse(bookInfo.data, '3.0');
+  const books = await Book.findAll();
+  // const API = axios.create({
+  //   baseURL: bokInfoApi.url,
+  //   headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
+  // });
+  // const bookInfo = await API.get(`/get/9789129598285`);
+  // const feed = onix.parse(bookInfo.data, '3.0');
 
-  const result = await parseString(bookInfo.data)
-  let firstname = getAuthorFirstname(feed);
-  let lastname = getAuthorLastname(feed);
+  books.forEach((book) => {
+    book.update({rating: 0});
+  });
+
   ctx.body = {
-    firstname,
-    lastname,
+    feed,
     // data,
     // result,
   };
-
-  // books.forEach(async (book) => {
-  //   const bookInfo = await API.get(`/get/${book.isbn}`);
-  //   const feed = onix.parse(bookInfo.data, '3.0');
-  //   const imageUrl = getResourceLink(feed);
-
-  //   const newBook = await book.update({
-  //     imageUrl,
-  //     localImage: false,
-  //   });
-  // });
 }
 
 async function isReviewed(ctx) {
-  const { slug, userId } = ctx.request.body;
+  const { slug, userId } = ctx.params;
 
   const book = await Book.findAll({
     where: { slug },
     include: [
       { model: Review,
-        where: { active: true, simple: false, },
+        where: { active: true },
         as: 'reviews',
-        required: false,
         include: [
           { 
             model: User,
-            id: userId,
+            where: {
+              id: userId,
+            }
+            // id: userId,
           },
         ],
       },
@@ -884,7 +682,7 @@ async function isReviewed(ctx) {
   });
 
   let isReviewedByUser = false;
-  if (!book) {
+  if (book.length > 0) {
     isReviewedByUser = true;
   }
   ctx.status = 200;
@@ -893,8 +691,6 @@ async function isReviewed(ctx) {
   };
 };
 
-router.post('/publish/manual', authAdmin, publishBookManually);
-router.post('/publish/isbn', authAdmin, publishBookFromIsbn);
 router.patch('/edit/', authAdmin, editBook);
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
@@ -906,6 +702,6 @@ router.get('/search', searchForBooks);
 router.get('/count', getCount);
 router.get('/cleanup', cleanUp);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
-router.get('/reviewed', isReviewed);
+router.get('/reviewed/:slug/:userId', isReviewed);
 
 module.exports = router;

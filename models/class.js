@@ -5,12 +5,11 @@ const tableName = path.basename(__filename, '.js');
 module.exports = function modelExport(db, DataTypes) {
   const Model = db.define(tableName, {
     displayName: DataTypes.STRING,
-    schoolUnitCode: DataTypes.STRING,
   });
 
   Model.associate = function (models) {
     this.belongsToMany(models.User, { through: 'UserClass' });
-    this.belongsToMany(models.SchoolUnit, { through: 'ClassSchoolUnit' });
+    this.belongsTo(models.SchoolUnit);
   };
 
   return Model;

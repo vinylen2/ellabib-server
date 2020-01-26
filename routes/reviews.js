@@ -169,7 +169,7 @@ async function getReviewsFromBook(ctx) {
  *
  */
 async function publishReview(ctx) {
-  const { description, review, reviewerId, bookId, rating } = ctx.request.body;
+  const { description, review, bookId, rating, userId } = ctx.request.body;
   const files = ctx.request.files;
 
   let descriptionAudioUrl;
@@ -188,7 +188,7 @@ async function publishReview(ctx) {
   }
 
   const book = await Book.findById(bookId);
-  const user = await User.findById(reviewerId);
+  const user = await User.findById(userId);
   const publishedReview = await Review.create({
     description,
     descriptionAudioUrl,
@@ -196,11 +196,11 @@ async function publishReview(ctx) {
     review,
     rating,
     active: false,
+    simple: false,
   });
 
   publishedReview.addUsers(user);
-  publishedReview.addBooks(book)
-  Book.updateRating(book, Review, bookId);
+  publishedReview.addBooks(book).then();
 
   ctx.body = {
     data: publishedReview,
@@ -221,10 +221,12 @@ async function publishSimpleReview(ctx) {
   });
 
   review.addUsers(user);
-  review.addBooks(book);
-  Book.updateRating(book, Review, bookId);
-  Book.increment({readCount: 1}, { where: { id: bookId }});
+  review.addBooks(book).then(() => {
+    Book.updateRating(book, Review, bookId);
+    User.bookRead(userId, 'simple', book.pages);
+  });
 
+  Book.increment({readCount: 1}, { where: { id: bookId }});
 
   ctx.body = {
     data: review,
@@ -274,15 +276,17 @@ async function activateReviews(ctx) {
       ],
     });
     const bookId = book[0].id;
-    const ratingQuery = await connection.query(`
-      SELECT books.*, AVG(reviews.rating) as rating
-      FROM books
-      INNER JOIN BookReview ON BookReview.bookId = books.id
-      INNER JOIN reviews on BookReview.reviewId = reviews.id
-      WHERE books.id = ${bookId}
-    `);
-    const rating = _.uniqBy(_.flatten(ratingQuery), 'id')[0].rating;
-    return book[0].update({ rating });
+    Book.updateRating(book[0], Review, bookId);
+    // const ratingQuery = await connection.query(`
+    //   SELECT books.*, AVG(reviews.rating) as rating
+    //   FROM books
+    //   INNER JOIN BookReview ON BookReview.bookId = books.id
+    //   INNER JOIN reviews on BookReview.reviewId = reviews.id
+    //   WHERE books.id = ${bookId}
+    // `);
+    // const rating = _.uniqBy(_.flatten(ratingQuery), 'id')[0].rating;
+    // return book[0].update({ rating });
+    return true;
   }));
 
   ctx.body = {
@@ -498,7 +502,7 @@ async function updateRating() {
 
 router.patch('/audio/edit', authAdmin, uploader, editReviewAudio);
 router.patch('/increment', incrementReviewPlay);
-router.post('/', authIp, uploader, publishReview);
+router.post('/', uploader, publishReview);
 router.post('/simple', publishSimpleReview);
 router.get('/id/:id', getReviewsFromBook);
 router.get('/count', getReviewCount);
