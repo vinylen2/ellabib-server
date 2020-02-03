@@ -24,14 +24,15 @@ module.exports = function modelExport(db, DataTypes) {
   Model.bookRead = function (userId, type, pages) {
     switch (type) {
       case 'simple':
-        Model.increment({
+        user.increment({
           pagesRead: pages,
           booksRead: 1,
-        }, { where: { id: userId }});
+        });
         break;
       case 'review':
         user.increment({
           pagesRead: pages,
+          booksRead: 1,
           reviewsWritten: 1,
         });
         break;

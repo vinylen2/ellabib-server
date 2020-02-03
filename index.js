@@ -33,6 +33,7 @@ const authors = require('./routes/authors.js');
 const reviews = require('./routes/reviews.js');
 const genres = require('./routes/genres.js');
 const user = require('./routes/user.js');
+const classes = require('./routes/classes.js');
 
 app.listen(config.port);
 
@@ -45,4 +46,5 @@ models.connection.sync({alter: false}).then(() => {
   app.use(authors.routes());
   app.use(reviews.routes());
   app.use(user.routes());
+  app.use(classes.routes());
 });

@@ -212,7 +212,13 @@ async function publishSimpleReview(ctx) {
   const { rating, bookId, userId } = ctx.request.body;
 
   const book = await Book.findById(bookId);
-  const user = await User.findById(userId);
+  const user = await User.findById(userId, {
+    include:
+      {
+        model: Class,
+      },
+  });
+  console.log(user);
 
   const review = await Review.create({
     rating,
@@ -277,15 +283,6 @@ async function activateReviews(ctx) {
     });
     const bookId = book[0].id;
     Book.updateRating(book[0], Review, bookId);
-    // const ratingQuery = await connection.query(`
-    //   SELECT books.*, AVG(reviews.rating) as rating
-    //   FROM books
-    //   INNER JOIN BookReview ON BookReview.bookId = books.id
-    //   INNER JOIN reviews on BookReview.reviewId = reviews.id
-    //   WHERE books.id = ${bookId}
-    // `);
-    // const rating = _.uniqBy(_.flatten(ratingQuery), 'id')[0].rating;
-    // return book[0].update({ rating });
     return true;
   }));
 

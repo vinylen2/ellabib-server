@@ -691,6 +691,31 @@ async function isReviewed(ctx) {
   };
 };
 
+async function getBooksReadById (ctx) {
+  const userId = ctx.params.id;
+
+  const books = await Book.findAll({
+    include: [
+      {
+        model: Review,
+        required: true,
+        include: [
+          {
+            model: User,
+            where: {
+              id: userId,
+            },
+          }
+        ],
+      },
+    ],
+  });
+
+  ctx.body = {
+    data: books,
+  };
+};
+
 router.patch('/edit/', authAdmin, editBook);
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
@@ -703,5 +728,7 @@ router.get('/count', getCount);
 router.get('/cleanup', cleanUp);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
 router.get('/reviewed/:slug/:userId', isReviewed);
+
+router.get('/read/:id', getBooksReadById);
 
 module.exports = router;
