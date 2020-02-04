@@ -21,24 +21,6 @@ module.exports = function modelExport(db, DataTypes) {
     },
   });
 
-  Model.bookRead = function (userId, type, pages) {
-    switch (type) {
-      case 'simple':
-        user.increment({
-          pagesRead: pages,
-          booksRead: 1,
-        });
-        break;
-      case 'review':
-        user.increment({
-          pagesRead: pages,
-          booksRead: 1,
-          reviewsWritten: 1,
-        });
-        break;
-    };
-  };
-
   Model.associate = function (models) {
     this.belongsToMany(models.Review, { through: 'BookReviewer' });
     this.belongsTo(models.Role);

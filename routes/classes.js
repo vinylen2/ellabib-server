@@ -7,14 +7,19 @@ async function getClasses (ctx) {
 
   let classes;
   classes = await connection.query(`
-  SELECT SUM(U.pagesRead) AS pagesRead, 
-    SUM(U.booksRead) AS booksRead, 
-    SUM(U.reviewsWritten) AS reviewsWritten,
-    C.displayName
-  FROM classes C
-    JOIN UserClass UC ON C.id = UC.classId
-    JOIN users U ON U.id = UC.userId
+  SELECT SUM(B.pages) as pagesRead, 
+  	C.displayName, 
+    COUNT(R.id) as booksRead,
+    C.id
+  FROM users U   
+    JOIN BookReviewer BRR ON U.id = BRR.userId
+    JOIN Reviews R ON BRR.reviewId = R.id
+    JOIN BookReview Br ON R.id = Br.reviewId
+    JOIN Books B ON Br.bookId = B.id
+    JOIN UserClass UC ON U.id = UC.classId
+    JOIN Classes C ON UC.classId = C.id
   ${queries.class ? 'WHERE C.displayName IN (:classes)' : ''}
+  AND R.active = TRUE
   GROUP BY C.id
   `, { replacements: { classes: queries.class }, type: Sequelize.QueryTypes.SELECT });
 

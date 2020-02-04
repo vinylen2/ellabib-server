@@ -20,24 +20,6 @@ module.exports = function modelExport(db, DataTypes) {
     },
   });
 
-  Model.bookRead = async function (type, schoolUnit, pages) {
-    switch (type) {
-      case 'simple': 
-        schoolUnit.update({
-          booksRead: 1,
-          pagesRead: pages,
-        });
-        break;
-      case 'review':
-        schoolUnit.update({
-          booksRead: 1,
-          reviewsWritten: 1,
-          pagesRead: pages,
-        });
-        break;
-    };
-  };
-
   Model.associate = function (models) {
     this.belongsToMany(models.User, { through: 'UserSchoolUnit' });
     this.hasMany(models.Class);

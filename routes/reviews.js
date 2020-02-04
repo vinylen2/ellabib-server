@@ -4,7 +4,7 @@ const Promise = require('bluebird');
 const cookie = require('cookie');
 const _ = require('lodash');
 const moment = require('moment');
-const { Review, User, Book, connection } = require('../models');
+const { Review, User, Book, connection, Class } = require('../models');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const { promisify } = require('util');
@@ -212,13 +212,7 @@ async function publishSimpleReview(ctx) {
   const { rating, bookId, userId } = ctx.request.body;
 
   const book = await Book.findById(bookId);
-  const user = await User.findById(userId, {
-    include:
-      {
-        model: Class,
-      },
-  });
-  console.log(user);
+  const user = await User.findById(userId);
 
   const review = await Review.create({
     rating,
@@ -229,7 +223,6 @@ async function publishSimpleReview(ctx) {
   review.addUsers(user);
   review.addBooks(book).then(() => {
     Book.updateRating(book, Review, bookId);
-    User.bookRead(userId, 'simple', book.pages);
   });
 
   Book.increment({readCount: 1}, { where: { id: bookId }});

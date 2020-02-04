@@ -641,15 +641,15 @@ async function editBook(ctx) {
 
 async function cleanUp(ctx) {
   const books = await Book.findAll();
-  // const API = axios.create({
-  //   baseURL: bokInfoApi.url,
-  //   headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
-  // });
-  // const bookInfo = await API.get(`/get/9789129598285`);
-  // const feed = onix.parse(bookInfo.data, '3.0');
+  const API = axios.create({
+    baseURL: bokInfoApi.url,
+    headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
+  });
 
-  books.forEach((book) => {
-    book.update({rating: 0});
+  books.forEach(async (book) => {
+    const bookInfo = await API.get(`/get/${book.dataValues.isbn}`);
+    const feed = onix.parse(bookInfo.data, '3.0');
+    book.update({pages: onixGetters.getPages(feed)});
   });
 
   ctx.body = {
