@@ -37,7 +37,7 @@ const classes = require('./routes/classes.js');
 
 app.listen(config.port);
 
-models.connection.sync({alter: false}).then(() => {
+models.connection.sync().then(() => {
   console.log(`Server listening on port: ${config.port}`);
   console.log('Sequelize synchronized');
   app.use(auth.routes());

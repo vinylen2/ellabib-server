@@ -5,8 +5,7 @@ const Sequelize = require('sequelize');
 async function getClasses (ctx) {
   const queries = ctx.request.query;
 
-  let classes;
-  classes = await connection.query(`
+  const classes = await connection.query(`
   SELECT SUM(B.pages) as pagesRead, 
   	C.displayName, 
     COUNT(R.id) as booksRead,
