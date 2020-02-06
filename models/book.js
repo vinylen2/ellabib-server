@@ -14,7 +14,7 @@ module.exports = function modelExport(db, DataTypes) {
     localImage: DataTypes.BOOLEAN,
     isbn: DataTypes.STRING(13),
     libraryId: DataTypes.INTEGER,
-    originalDescription: DataTypes.STRING,
+    description: DataTypes.TEXT,
     rating: DataTypes.FLOAT,
     readCount: {
       type: DataTypes.INTEGER,

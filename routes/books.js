@@ -611,7 +611,7 @@ async function getCount(ctx) {
 }
 
 async function editBook(ctx) {
-  const { bookId, authorId, genreId, title, pages } = ctx.request.body;
+  const { bookId, authorId, genreId, title, pages, description } = ctx.request.body;
 
   try {
     const book = await Book.findById(bookId);
@@ -621,6 +621,7 @@ async function editBook(ctx) {
     const newBook = await book.update({
       title,
       pages,
+      description,
     });
 
     book.setGenres(genre);
@@ -646,19 +647,24 @@ async function cleanUp(ctx) {
     headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
   });
 
-  books.forEach(async (book) => {
-    const bookInfo = await API.get(`/get/${book.dataValues.isbn}`);
-    const feed = onix.parse(bookInfo.data, '3.0');
-    book.update({pages: onixGetters.getPages(feed)});
-  });
+  // const bookInfo = await API.get(`/get/9789162271527`);
+  // const feed = onix.parse(bookInfo.data, '3.0');
+
+  // books.forEach(async (book) => {
+  //   const bookInfo = await API.get(`/get/${book.dataValues.isbn}`);
+  //   const feed = onix.parse(bookInfo.data, '3.0');
+  //   book.update({ description: onixGetters.getDescription(feed)});
+  // });
 
   ctx.body = {
-    feed,
+    item: 'stuff'
+    // feed,
     // data,
     // result,
   };
 }
 
+// fix this function!
 async function isReviewed(ctx) {
   const { slug, userId } = ctx.params;
 
@@ -670,6 +676,7 @@ async function isReviewed(ctx) {
         as: 'reviews',
         include: [
           { 
+            required: true,
             model: User,
             where: {
               id: userId,

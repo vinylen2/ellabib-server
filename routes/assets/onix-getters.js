@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const onixGetters = {
   getResourceLink(feed) {
     return feed.products[0].collateralDetail.supportingResource
@@ -15,9 +16,11 @@ const onixGetters = {
       .element.text;
   },
   getDescription(feed) {
-    return feed.products[0].collateralDetail.textContent
-      .find(element => element.type == 3)
+    let text = feed.products[0].collateralDetail.textContent
+      .find(element => (element.type == 3 || element.type == 2))
       .text;
+    
+    return _.unescape(text).replace(/(<([^>]+)>)/ig,"");
   },
   getAuthorFirstname(feed) {
     return feed.products[0].descriptiveDetail.contributor

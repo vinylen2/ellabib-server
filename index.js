@@ -34,6 +34,7 @@ const reviews = require('./routes/reviews.js');
 const genres = require('./routes/genres.js');
 const user = require('./routes/user.js');
 const classes = require('./routes/classes.js');
+const schoolUnits = require('./routes/schoolUnits.js');
 
 app.listen(config.port);
 
@@ -47,4 +48,5 @@ models.connection.sync().then(() => {
   app.use(reviews.routes());
   app.use(user.routes());
   app.use(classes.routes());
+  app.use(schoolUnits.routes());
 });
