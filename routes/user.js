@@ -11,9 +11,9 @@ async function getUserInfo(ctx) {
     Ro.type, Ro.displayName,
     SUM(B.pages) as pagesRead,
     COUNT(R.id) as booksRead,
+    SUM(R.simple = 0) as reviewsWritten,
     C.displayName as classDisplayName,
-    C.id as classId,
-    A.id as avatarId, A.imageUrl as avatarImageUrl, A.displayName as avatarDisplayName, A.type as avatarType
+    C.id as classId
   FROM Users U
     JOIN Roles Ro ON U.roleId = Ro.id
     JOIN UserClass UC ON U.id = UC.userId
@@ -22,7 +22,6 @@ async function getUserInfo(ctx) {
     JOIN Reviews R ON BRR.reviewId = R.id
     JOIN BookReview Br ON R.id = Br.reviewId
     JOIN Books B ON Br.bookId = B.id
-    JOIN Avatars A ON U.avatarId = A.id
   WHERE U.id = (:userId)
   GROUP BY U.id, C.id, C.displayName;
   `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });

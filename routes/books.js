@@ -9,6 +9,9 @@ const bokInfoApi = require('../config.json').bokInfo;
 const onix = require('onix');
 const onixGetters = require('./assets/onix-getters.js');
 
+const { connection } = require('../models');
+const Sequelize = require('sequelize');
+
 async function authAdmin(ctx, next) {
   try {
     if (cookie.parse(ctx.header.cookie).admin) {
@@ -668,28 +671,18 @@ async function cleanUp(ctx) {
 async function isReviewed(ctx) {
   const { slug, userId } = ctx.params;
 
-  const book = await Book.findAll({
-    where: { slug },
-    include: [
-      { model: Review,
-        where: { active: true },
-        as: 'reviews',
-        include: [
-          { 
-            required: true,
-            model: User,
-            where: {
-              id: userId,
-            }
-            // id: userId,
-          },
-        ],
-      },
-    ],
-  });
+  const isReviewed = await connection.query(`
+  SELECT U.id
+  FROM Users U
+    JOIN BookReviewer BRR ON U.id = BRR.userId
+    JOIN Reviews R ON BRR.reviewId = R.id
+    JOIN BookReview Br ON R.id = Br.reviewId
+    JOIN Books B ON Br.bookId = B.id
+  WHERE B.slug = (:slug) AND U.id = (:userId);
+  `, { replacements: { slug, userId }, type: Sequelize.QueryTypes.SELECT });
 
   let isReviewedByUser = false;
-  if (book.length > 0) {
+  if (isReviewed.length > 0) {
     isReviewedByUser = true;
   }
   ctx.status = 200;
