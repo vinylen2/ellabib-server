@@ -4,7 +4,7 @@ const _ = require('lodash');
 const axios = require('axios');
 const cookie = require('cookie');
 const slugify = require('slugify');
-const { Book, Genre, Author, Review, User } = require('../models');
+const { Book, Genre, Author, Review, User, Isbn, LibraryId } = require('../models');
 const bokInfoApi = require('../config.json').bokInfo;
 const onix = require('onix');
 const onixGetters = require('./assets/onix-getters.js');
@@ -45,51 +45,6 @@ function flattenAndUnique(array) {
 }
 
 
-/**
- * @api {get} /books Get all books
- * @apiName getBooks
- * @apiGroup Books
- * @apiExample {curl} Example usage:
- * curl -i http://localhost/8000/books?genre=:genreId,genreId
- *
- * @apiParam {String} genre Query for books by genre
- * @apiParam {Number} genreId ID of the genre to query for separated by commas.
- *
- * @apiSuccess {Array} data Array containing all books
- * @apiSuccess {String} title Title of the Book
- * @apiSuccess {String} slug URL-friendly title of the Book
- * @apiSuccess {Number} views Amount of views of Book
- * @apiSuccess {Number} pages Amount of pages
- * @apiSuccess {String} imageUrl Path to image
- * @apiSuccess {Number} rating Rating of the Book
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": [
-        {
-          "title": "A new book",
-          "slug": "a-new-book",
-          "views": null,
-          "pages": 52,
-          "imageUrl": "/path/to/image",
-          "rating": null,
-          "id": 12
-        },
-        {
-          "title": "Another book",
-          "slug": "another-book",
-          "views": null,
-          "pages": 52,
-          "imageUrl": "/path/to/image2",
-          "rating": null,
-          "id": 13
-        },
-    ],
-      "message": "a message"
-    }
- *
- */
 async function getAllBooks(ctx) {
   const books = await Book.findAll({
     attributes: {
@@ -125,51 +80,6 @@ async function getAllBooks(ctx) {
   };
 }
 
-/**
- * @api {get} /books Search for books
- * @apiName searchBooks
- * @apiGroup Books
- * @apiExample {curl} Example usage:
- * curl -i http://localhost/8000/books/search?query=:word
- *
- * @apiParam {String} query Create query of books
- * @apiParam {Number} word Word to search for
- *
- * @apiSuccess {Array} data Array containing all books that matches the query
- * @apiSuccess {String} title Title of the Book
- * @apiSuccess {String} slug URL-friendly title of the Book
- * @apiSuccess {Number} views Amount of views of Book
- * @apiSuccess {Number} pages Amount of pages
- * @apiSuccess {String} imageUrl Path to image
- * @apiSuccess {Number} rating Rating of the Book
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": [
-        {
-          "title": "A new book",
-          "slug": "a-new-book",
-          "views": null,
-          "pages": 52,
-          "imageUrl": "/path/to/image",
-          "rating": null,
-          "id": 12
-        },
-        {
-          "title": "Another book",
-          "slug": "another-book",
-          "views": null,
-          "pages": 52,
-          "imageUrl": "/path/to/image2",
-          "rating": null,
-          "id": 13
-        },
-    ],
-      "message": "a message"
-    }
- *
- */
 async function searchForBooks(ctx) {
   const queryArray = flattenQueries(ctx.request.query);
 
@@ -303,66 +213,6 @@ async function searchForBooksWithGenre(ctx) {
   };
 }
 
-/**
- * @api {get} /books/id/:id Get book from ID
- * @apiName getBook
- * @apiGroup Books
- * @apiExample {curl} Example usage:
- * curl -i http://localhost/8000/book/id/12
- * @apiParam {String} id Books unique ID.
- *
- * @apiSuccess {String} title Title of the Book
- * @apiSuccess {String} slug URL-friendly title of the Book
- * @apiSuccess {Number} views Amount of views of Book
- * @apiSuccess {Number} pages Amount of pages
- * @apiSuccess {String} imageUrl Path to image
- * @apiSuccess {Number} rating Rating of the Book
- * @apiSuccess {Array} genre Array containing all genres of the Book
- * @apiSuccess {Array} author Array containing all authors of the Book
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": {
-        "title": "A new book",
-        "slug": "a-new-book",
-        "views": null,
-        "pages": 52,
-        "imageUrl": "/path/to/image",
-        "rating": null,
-        "id": 12
-        "genres": [
-          {
-          "id": 1,
-           "slug": "deckare",
-           "name": "Deckare",
-           "createdAt": null,
-           "updatedAt": null,
-           "BookGenre": {
-             "createdAt": "2017-07-04T15:04:49.000Z",
-             "updatedAt": "2017-07-04T15:04:49.000Z",
-             "bookId": 1,
-             "genreId": 1
-           }
-         ],
-        "authors": [
-          "id": 1,
-          "firstname": "Gabriel",
-          "lastname": "Wallén",
-          "createdAt": "2017-07-12T12:02:16.000Z",
-          "updatedAt": "2017-07-12T12:02:16.000Z",
-          "BookAuthor": {
-            "createdAt": "2017-07-04T15:09:48.000Z",
-            "updatedAt": "2017-07-04T15:09:48.000Z",
-            "authorId": 1,
-            "bookId": 1
-          }
-        ]
-      },
-      "message": "a message"
-    }
- *
- */
 async function getBook(ctx) {
   const bookId = ctx.params.id;
   const book = await Book.findAll({
@@ -378,15 +228,6 @@ async function getBook(ctx) {
       },
     ],
   });
-
-  // const book = await Book.findById(bookId);
-  // const genre = await book.getGenres({
-  //   attributes: { exclude: ['createdAt', 'updatedAt', 'BookGenre'] },
-  // });
-  // const author = await book.getAuthors();
-  //
-  // book.dataValues.genre = genre;
-  // book.dataValues.author = author;
 
   ctx.body = {
     data: book[0],
@@ -467,83 +308,21 @@ async function getBookFromIsbn(ctx) {
       };
   };
 }
-/**
- * @api {get} /books/slug/:slug Get book from slug
- * @apiName getBookFromSlug
- * @apiGroup Books
- * @apiExample {curl} Example usage:
- * curl -i http://localhost/8000/book/slug/deckarboken
- * @apiParam {String} slug Books unique slug
- *
- * @apiSuccess {String} title Title of the Book
- * @apiSuccess {String} slug URL-friendly title of the Book
- * @apiSuccess {Number} views Amount of views of Book
- * @apiSuccess {Number} pages Amount of pages
- * @apiSuccess {String} imageUrl Path to image
- * @apiSuccess {Number} rating Rating of the Book
- * @apiSuccess {Array} genre Array containing all genres of the Book
- * @apiSuccess {Array} author Array containing all authors of the Book
- * @apiSuccess {Array} reviews Array containing all active reviews of the Book
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": {
-        "title": "A new book",
-        "slug": "a-new-book",
-        "views": null,
-        "pages": 52,
-        "imageUrl": "/path/to/image",
-        "rating": null,
-        "id": 12
-        "genres": [
-          {
-          "id": 1,
-           "slug": "deckare",
-           "name": "Deckare",
-           "createdAt": null,
-           "updatedAt": null,
-           "BookGenre": {
-             "createdAt": "2017-07-04T15:04:49.000Z",
-             "updatedAt": "2017-07-04T15:04:49.000Z",
-             "bookId": 1,
-             "genreId": 1
-           }
-         ],
-        "authors": [
-          "id": 1,
-          "firstname": "Gabriel",
-          "lastname": "Wallén",
-          "createdAt": "2017-07-12T12:02:16.000Z",
-          "updatedAt": "2017-07-12T12:02:16.000Z",
-          "BookAuthor": {
-            "createdAt": "2017-07-04T15:09:48.000Z",
-            "updatedAt": "2017-07-04T15:09:48.000Z",
-            "authorId": 1,
-            "bookId": 1
-          }
-        ]
-      },
-      "message": "a message"
-    }
- *
- */
 async function getBookFromSlug(ctx) {
   const slug = ctx.params.slug;
 
   try {
     const book = await Book.findAll({
       where: { slug },
+      // attributes: [[Sequelize.fn('AVG', Sequelize.col('reviews.rating')), 'bookRating']],
+      // group: ['genres.id', 'authors.id', 'reviews.id'],
       include: [
         { model: Genre, as: 'genres' },
         { model: Author, as: 'authors' },
         { model: Review,
           where: { active: true, simple: false, },
-          as: 'reviews',
           required: false,
-          // include: [
-          //   { model: User },
-          // ],
+          as: 'reviews',
         },
       ],
     });
@@ -554,6 +333,7 @@ async function getBookFromSlug(ctx) {
       message: 'Success',
     };
   } catch (e) {
+    console.log(e);
     ctx.status = e.status || 500;
     ctx.body = {
       message: 'failed',
@@ -643,24 +423,11 @@ async function editBook(ctx) {
 }
 
 
+const csv = require('csvtojson');
+
 async function cleanUp(ctx) {
-  const books = await Book.findAll();
-  const API = axios.create({
-    baseURL: bokInfoApi.url,
-    headers: {'Ocp-Apim-Subscription-Key': bokInfoApi.key},
-  });
-
-  // const bookInfo = await API.get(`/get/9789162271527`);
-  // const feed = onix.parse(bookInfo.data, '3.0');
-
-  // books.forEach(async (book) => {
-  //   const bookInfo = await API.get(`/get/${book.dataValues.isbn}`);
-  //   const feed = onix.parse(bookInfo.data, '3.0');
-  //   book.update({ description: onixGetters.getDescription(feed)});
-  // });
-
   ctx.body = {
-    item: 'stuff'
+    // books,
     // feed,
     // data,
     // result,

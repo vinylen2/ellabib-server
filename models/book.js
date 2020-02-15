@@ -11,9 +11,6 @@ module.exports = function modelExport(db, DataTypes) {
     views: DataTypes.INTEGER,
     pages: DataTypes.INTEGER,
     imageUrl: DataTypes.STRING,
-    localImage: DataTypes.BOOLEAN,
-    isbn: DataTypes.STRING(13),
-    libraryId: DataTypes.INTEGER,
     description: DataTypes.TEXT,
     rating: DataTypes.FLOAT,
     readCount: {
@@ -58,6 +55,9 @@ module.exports = function modelExport(db, DataTypes) {
 
   Model.associate = function (models) {
     this.belongsToMany(models.Genre, { through: 'BookGenre' });
+    this.belongsToMany(models.Isbn, { through: 'BookIsbn' });
+    this.hasMany(models.Isbn);
+    this.hasMany(models.LibraryId);
     this.belongsToMany(models.Author, { through: 'BookAuthor' });
     this.belongsToMany(models.Review, { through: 'BookReview' });
   };

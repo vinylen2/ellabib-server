@@ -1,8 +1,9 @@
 const _ = require('lodash');
 const onixGetters = {
   getResourceLink(feed) {
+    console.log(feed.products[0].collateralDetail.supportingResource);
     return feed.products[0].collateralDetail.supportingResource
-    .find(element => element.resourceContentType == 1)
+    .find(element => (element.resourceContentType == 1 || element.resourceContentType === '01_03'))
     .resourceVersion[0].resourceLink;
   },
   getPages(feed) {

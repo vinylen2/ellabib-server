@@ -14,14 +14,14 @@ async function getUserInfo(ctx) {
     SUM(R.simple = 0) as reviewsWritten,
     C.displayName as classDisplayName,
     C.id as classId
-  FROM Users U
-    JOIN Roles Ro ON U.roleId = Ro.id
+  FROM users U
+    JOIN roles Ro ON U.roleId = Ro.id
     JOIN UserClass UC ON U.id = UC.userId
-    JOIN Classes C ON UC.classId = C.id
+    JOIN classes C ON UC.classId = C.id
     JOIN BookReviewer BRR ON U.id = BRR.userId
-    JOIN Reviews R ON BRR.reviewId = R.id
+    JOIN reviews R ON BRR.reviewId = R.id
     JOIN BookReview Br ON R.id = Br.reviewId
-    JOIN Books B ON Br.bookId = B.id
+    JOIN books B ON Br.bookId = B.id
   WHERE U.id = (:userId)
   GROUP BY U.id, C.id, C.displayName;
   `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
