@@ -9,6 +9,7 @@ async function getClasses (ctx) {
   SELECT SUM(B.pages) as pagesRead, 
   	C.displayName, 
     COUNT(R.id) as booksRead,
+    SUM(R.simple = 0) as reviewsWritten,
     C.id
   FROM users U   
     JOIN BookReviewer BRR ON U.id = BRR.userId

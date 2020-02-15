@@ -8,6 +8,7 @@ async function getSchools(ctx) {
   const schools = await connection.query(`
   SELECT SU.id, SU.displayName,
     SUM(B.pages) as pagesRead,
+    SUM(R.simple = 0) as reviewsWritten,
     COUNT(R.id) as booksRead
   FROM schoolUnits SU
     JOIN UserSchoolUnit USU ON SU.id = USU.schoolUnitId
