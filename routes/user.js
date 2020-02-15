@@ -8,7 +8,7 @@ async function getUserInfo(ctx) {
 
   const user = await connection.query(`
   SELECT U.id, U.firstName, U.lastName, U.extId,
-    Ro.type, Ro.displayName,
+    Ro.type as roleType, Ro.displayName as roleDisplayName,
     SUM(B.pages) as pagesRead,
     COUNT(R.id) as booksRead,
     SUM(R.simple = 0) as reviewsWritten,
