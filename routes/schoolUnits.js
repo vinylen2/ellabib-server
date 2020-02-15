@@ -9,13 +9,13 @@ async function getSchools(ctx) {
   SELECT SU.id, SU.displayName,
     SUM(B.pages) as pagesRead,
     COUNT(R.id) as booksRead
-  FROM SchoolUnits SU
+  FROM schoolUnits SU
     JOIN UserSchoolUnit USU ON SU.id = USU.schoolUnitId
-    JOIN Users U ON USU.userId = U.id
+    JOIN users U ON USU.userId = U.id
     JOIN BookReviewer BRR ON U.id = BRR.userId
-    JOIN Reviews R ON BRR.reviewId = R.id
+    JOIN reviews R ON BRR.reviewId = R.id
     JOIN BookReview Br ON R.id = Br.reviewId
-    JOIN Books B ON Br.bookId = B.id
+    JOIN books B ON Br.bookId = B.id
   ${queries.schoolUnit ? 'WHERE SU.id IN (:schools)' : ''}
   AND R.active = TRUE
   GROUP BY SU.id;

@@ -424,7 +424,30 @@ async function editBook(ctx) {
 
 
 async function cleanUp(ctx) {
+  const books = await Book.findAll({
+    where: { slug: null },
+  });
+
+  books.forEach(async (book) => {
+    slug = slugify(book.title, { remove: /[*+~.()'"!:@]/g, lower: true});
+    book.update({slug});
+  });
+
+  // const API = axios.create({
+  //   baseURL: 'https://www.googleapis.com/books/v1'
+  // });
+
+  // books.forEach(async (book) => {
+  //   let isbn = book.dataValues.isbns[0].isbn;
+  //   try {
+  //     console.log(bookInfo.data);
+  //   }
+  //   catch (e) {
+  //     console.log(e);
+  //   }
+  // });
   ctx.body = {
+    // books: books,
     // books,
     // feed,
     // data,

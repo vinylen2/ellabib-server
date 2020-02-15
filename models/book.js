@@ -8,7 +8,6 @@ module.exports = function modelExport(db, DataTypes) {
   const Model = db.define(tableName, {
     title: DataTypes.STRING,
     slug: DataTypes.STRING,
-    views: DataTypes.INTEGER,
     pages: DataTypes.INTEGER,
     imageUrl: DataTypes.STRING,
     description: DataTypes.TEXT,
