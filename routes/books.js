@@ -6,6 +6,7 @@ const cookie = require('cookie');
 const slugify = require('slugify');
 const { Book, Genre, Author, Review, User, Isbn, LibraryId } = require('../models');
 const bokInfoApi = require('../config.json').bokInfo;
+const gApi = require('../config.json').gapi;
 const onix = require('onix');
 const onixGetters = require('./assets/onix-getters.js');
 
@@ -372,11 +373,16 @@ async function getHighestRatedBooks(ctx) {
 }
 
 async function getCount(ctx) {
-  const allActiveReviews = await Review.count({
-    where: {
-      active: true,
-    },
-  });
+  const result = await connection.query(`
+    SELECT SUM(B.pages) as pagesRead,
+      SUM(R.simple = 0) as reviewsWritten,
+      COUNT(R.id) as booksRead
+    FROM books B   
+      JOIN BookReview Br ON Br.bookId = B.id
+      JOIN reviews R ON Br.reviewId = R.id
+    WHERE R.active = true;
+  `, { type: Sequelize.QueryTypes.SELECT });
+  console.log(result);
 
   const allBooks = await Book.count();
 
@@ -386,7 +392,9 @@ async function getCount(ctx) {
         count: allBooks,
       },
       reviews: {
-        count: allActiveReviews,
+        reviewsWritten: result[0].reviewsWritten,
+        booksRead: result[0].booksRead,
+        pagesRead: result[0].pagesRead,
       },
     },
     message: 'Number of and active reviews.',
@@ -423,37 +431,8 @@ async function editBook(ctx) {
 }
 
 
-async function cleanUp(ctx) {
-  const books = await Book.findAll({
-    where: { slug: null },
-  });
+const fs = require('fs');
 
-  books.forEach(async (book) => {
-    slug = slugify(book.title, { remove: /[*+~.()'"!:@]/g, lower: true});
-    book.update({slug});
-  });
-
-  // const API = axios.create({
-  //   baseURL: 'https://www.googleapis.com/books/v1'
-  // });
-
-  // books.forEach(async (book) => {
-  //   let isbn = book.dataValues.isbns[0].isbn;
-  //   try {
-  //     console.log(bookInfo.data);
-  //   }
-  //   catch (e) {
-  //     console.log(e);
-  //   }
-  // });
-  ctx.body = {
-    // books: books,
-    // books,
-    // feed,
-    // data,
-    // result,
-  };
-}
 
 // fix this function!
 async function isReviewed(ctx) {
@@ -504,6 +483,8 @@ async function getBooksReadById (ctx) {
   };
 };
 
+
+
 router.patch('/edit/', authAdmin, editBook);
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
@@ -513,10 +494,9 @@ router.get('/recently/reviewed', getRecentlyReviewedBooks);
 router.get('/highest', getHighestRatedBooks);
 router.get('/search', searchForBooks);
 router.get('/count', getCount);
-router.get('/cleanup', cleanUp);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
 router.get('/reviewed/:slug/:userId', isReviewed);
-
 router.get('/read/:id', getBooksReadById);
+
 
 module.exports = router;

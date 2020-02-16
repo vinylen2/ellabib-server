@@ -36,6 +36,9 @@ const user = require('./routes/user.js');
 const classes = require('./routes/classes.js');
 const schoolUnits = require('./routes/schoolUnits.js');
 
+// use only in dev
+// const cleanup = require('./routes/cleanup.js');
+
 app.listen(config.port);
 
 models.connection.sync().then(() => {
@@ -49,4 +52,7 @@ models.connection.sync().then(() => {
   app.use(user.routes());
   app.use(classes.routes());
   app.use(schoolUnits.routes());
+
+  // use only in dev
+  // app.use(cleanup.routes());
 });

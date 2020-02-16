@@ -64,3 +64,6 @@ package-lock.json
 
 #generated docs
 routes/doc/
+
+cleanup.js
+books.json
