@@ -35,6 +35,7 @@ const genres = require('./routes/genres.js');
 const user = require('./routes/user.js');
 const classes = require('./routes/classes.js');
 const schoolUnits = require('./routes/schoolUnits.js');
+const avatars = require('./routes/avatars.js');
 
 // use only in dev
 // const cleanup = require('./routes/cleanup.js');
@@ -52,6 +53,7 @@ models.connection.sync().then(() => {
   app.use(user.routes());
   app.use(classes.routes());
   app.use(schoolUnits.routes());
+  app.use(avatars.routes());
 
   // use only in dev
   // app.use(cleanup.routes());
