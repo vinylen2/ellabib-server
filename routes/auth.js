@@ -26,7 +26,6 @@ async function logoutAdmin(ctx) {
 }
 
 const qs = require ('querystring');
-const oauth = require('axios-oauth-client');
 
 async function authSkolon(ctx) {
   const code = ctx.params.code;
@@ -35,15 +34,7 @@ async function authSkolon(ctx) {
     baseURL: 'https://idp.skolon/oauth/',
   });
 
-  let getAuthorizationCode = oauth.client(axios.create(), {
-    url: 'https://idp.skolon.oauth/access_token',
-    code,
-    client_id: skolon.client_id,
-    client_secret: skolon.client_secret,
-    redirect_uri: 'https://ellabib.se/login',
-    grant_type: 'authorization_code'
 
-  })
   let body = {
     code,
     client_id: skolon.client_id,
@@ -59,10 +50,8 @@ async function authSkolon(ctx) {
   };
 
   try {
-    const auth = await getAuthorizationCode();
-    console.log(auth);
-    // const login = await api.post('access_token', qs.stringify(body), config);
-    // console.log(login);
+    const login = await api.post('access_token', qs.stringify(body), config);
+    console.log(login);
   } catch (e) { console.log(e) }
 }
 
