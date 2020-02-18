@@ -1,6 +1,8 @@
 const router = require('koa-router')({ prefix: '/auth' });
 const _ = require('lodash');
+const axios = require('axios');
 const config = require('../config.json');
+const skolon = require('../config.json').skolon;
 
 async function authAdmin(ctx) {
     const { username, password } = ctx.request.body;
@@ -23,7 +25,14 @@ async function logoutAdmin(ctx) {
     };
 }
 
+async function authSkolon(ctx) {
+  const body = ctx.request.body;
+  console.log(body);
+
+}
+
 router.post('/admin', authAdmin);
+router.post('/skolon/callback', authSkolon);
 router.get('/logout', logoutAdmin);
 
 module.exports = router;

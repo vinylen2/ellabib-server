@@ -20,7 +20,7 @@ app.use(session());
 // Enable CORS
 app.use(cors({
   origin: 'http://localhost:8080',
-  // origin: 'http://ellabib.se',
+  // origin: 'https://ellabib.se',
   credentials: true,
   allowMethods: ['GET', 'PATCH', 'POST'],
   allowHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept'],
@@ -38,7 +38,7 @@ const schoolUnits = require('./routes/schoolUnits.js');
 const avatars = require('./routes/avatars.js');
 
 // use only in dev
-// const cleanup = require('./routes/cleanup.js');
+const cleanup = require('./routes/cleanup.js');
 
 app.listen(config.port);
 
@@ -56,5 +56,5 @@ models.connection.sync().then(() => {
   app.use(avatars.routes());
 
   // use only in dev
-  // app.use(cleanup.routes());
+  app.use(cleanup.routes());
 });

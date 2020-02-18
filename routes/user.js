@@ -1,5 +1,5 @@
 const router = require('koa-router')({ prefix: '/user' });
-// const { User, Role, Class, SchoolUnit } = require('../models');
+const { User, Role, Class, SchoolUnit } = require('../models');
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
 
@@ -36,5 +36,30 @@ async function getUserInfo(ctx) {
   };
 };
 
+async function switchAvatar(ctx) {
+  const { userId, avatarId } = ctx.request.body;
+
+  try {
+    await User.update(
+      { avatarId },
+      { where: { id: userId } },
+    );
+
+    ctx.body = {
+      data: {
+        avatarId,
+      },
+      message: 'User updated',
+    }
+  } catch (e) {
+    ctx.body = {
+      data: null,
+      message: 'User updated',
+    }
+
+  }
+};
+
 router.get('/id/:id', getUserInfo);
+router.patch('/avatar', switchAvatar);
 module.exports = router;
