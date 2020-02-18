@@ -26,13 +26,26 @@ async function logoutAdmin(ctx) {
 }
 
 async function authSkolon(ctx) {
-  const body = ctx.request.body;
-  console.log(body);
+  const code = ctx.params.code;
 
+  let api = axios.create({
+    baseURL: 'https://idp.skolon/oauth/',
+  });
+
+  try {
+    const login = await api.post('access_token', {
+      code,
+      client_id: skolon.client_id,
+      client_secret: skolon.client_secret,
+      redirect_uri: 'https://ellabib.se/login',
+      grant_type: 'authorization_code'
+    });
+    console.log(login);
+  } catch (e) { console.log(e) }
 }
 
 router.post('/admin', authAdmin);
-router.post('/skolon/callback', authSkolon);
+router.get('/skolon/:code', authSkolon);
 router.get('/logout', logoutAdmin);
 
 module.exports = router;
