@@ -5,6 +5,7 @@ const qs = require ('querystring');
 
 const config = require('../config.json');
 const skolon = require('../config.json').skolon;
+const { User, Role, Class, SchoolUnit } = require('../models');
 
 const OAuthApi = axios.create({
   baseURL: 'https://idp.skolon.com/oauth/',
@@ -61,13 +62,37 @@ async function authSkolon(ctx) {
       },
     };
 
-    const user = await PartnerApi.get('user/session', partnerConfig);
-    ctx.body = {
-      data: {
-        user: user.data,
-        access_token: login.data.access_token,
-      },
-    };
+    const session = await PartnerApi.get('user/session', partnerConfig);
+    const skolonUser = await PartnerApi.get(`user?userId=${session.data.userId}`, partnerConfig);
+    let roleId;
+
+    try {
+      switch (skolonUser.users[0].userType) {
+        case 'TEACHER':
+          roleId = 1;
+          break;
+        case 'STUDENT':
+          roleId = 2;
+          break;
+        default:
+          roleId = 2;
+          break;
+      }
+      const user = await User.findOrCreate({
+        where: {
+          extId: skolonUser.users[0].id,
+        },
+        defaults: {
+          roleId,
+        },
+      });
+      ctx.body = {
+        data: {
+          user,
+          access_token: session.data.access_token,
+        },
+      };
+    } catch (e) { console.log(e) }
   } catch (e) { console.log(e) }
 }
 
@@ -93,7 +118,7 @@ async function getUsers(ctx) {
       },
     };
 
-    const users = await PartnerApi.get('user', partnerConfig);
+    const users = await PartnerApi.get('group', partnerConfig);
     ctx.body = {
       data: users.data,
     };
@@ -103,7 +128,7 @@ async function getUsers(ctx) {
 
 router.post('/admin', authAdmin);
 router.get('/skolon/:code', authSkolon);
-router.get('/users/', getUsers);
+// router.get('/users/', getUsers);
 router.get('/logout', logoutAdmin);
 
 module.exports = router;
