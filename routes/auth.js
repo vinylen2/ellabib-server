@@ -63,11 +63,17 @@ async function authSkolon(ctx) {
     };
 
     const session = await PartnerApi.get('user/session', partnerConfig);
-    const skolonUser = await PartnerApi.get(`user?userId=${session.data.userId}`, partnerConfig);
-    let roleId;
+    const userResponse = await PartnerApi.get(`user?userId=${session.data.userId}`, partnerConfig);
+    const userClassResponse = await PartnerApi.get(`group?userId=${session.data.userId}`);
+
+    const skolonUser = userResponse.data.users[0];
+    console.log(userClassResponse);
+    const skolonUserClass = _.find(userClassResponse.data.users, { type: 'CLASS' });
+    console.log(skolonUserClass);
 
     try {
-      switch (skolonUser.users[0].userType) {
+    let roleId;
+      switch (skolonUser.userType) {
         case 'TEACHER':
           roleId = 1;
           break;
@@ -80,12 +86,13 @@ async function authSkolon(ctx) {
       }
       const user = await User.findOrCreate({
         where: {
-          extId: skolonUser.users[0].id,
+          extId: skolonUser.id,
         },
         defaults: {
           roleId,
         },
       });
+
       ctx.body = {
         data: {
           user,
