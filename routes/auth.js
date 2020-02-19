@@ -3,6 +3,9 @@ const _ = require('lodash');
 const axios = require('axios');
 const qs = require ('querystring');
 
+const { connection } = require('../models');
+const Sequelize = require('sequelize');
+
 const config = require('../config.json');
 const skolon = require('../config.json').skolon;
 const { User, Role, Class, SchoolUnit } = require('../models');
@@ -64,7 +67,7 @@ async function authSkolon(ctx) {
 
     const session = await PartnerApi.get('user/session', partnerConfig);
     const userResponse = await PartnerApi.get(`user?userId=${session.data.userId}`, partnerConfig);
-    const userClassResponse = await PartnerApi.get(`group?userId=${session.data.userId}`);
+    const userClassResponse = await PartnerApi.get(`group?userId=${session.data.userId}`, partnerConfig);
 
     const skolonUser = userResponse.data.users[0];
     const skolonUserClass = _.find(userClassResponse.data.groups, { type: 'CLASS' });
@@ -100,7 +103,14 @@ async function authSkolon(ctx) {
         },
       });
 
-      user.setClasses(dbClass);
+      const userId = user[0].dataValues.id;
+      const classId = dbClass[0].dataValues.id;
+      const relation = await connection.query(`
+        INSERT INTO UserClass (createdAt, updatedAt, classId, userId)
+        VALUES ('2017-10-04 14:49:18', '2017-10-04 14:49:18', (:classId), (:userId));
+      `, { replacements: { userId, classId }, type: Sequelize.QueryTypes.INSERT });
+
+      console.log(relation);
 
       ctx.body = {
         data: {
