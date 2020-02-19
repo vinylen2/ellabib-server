@@ -61,7 +61,7 @@ async function authSkolon(ctx) {
         'Authorization': 'Bearer ' + login.data.access_token,
       },
     };
-    const user = PartnerApi.get('user/session', partnerConfig);
+    const user = await PartnerApi.get('user/session', partnerConfig);
     console.log(user);
     // ctx.body = {
     //   login,
