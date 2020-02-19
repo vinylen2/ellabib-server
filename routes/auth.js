@@ -60,16 +60,18 @@ async function authSkolon(ctx) {
         'Authorization': 'Bearer ' + login.data.access_token,
       },
     };
+
     const user = await PartnerApi.get('user/session', partnerConfig);
-    console.log(user);
-    // ctx.body = {
-    //   login,
-    // };
+    ctx.body = {
+      data: {
+        user: user.data,
+        access_token: login.data.access_token,
+      },
+    };
   } catch (e) { console.log(e) }
 }
 
 async function getUsers(ctx) {
-  console.log('getting users');
   let body = {
     grant_type: 'client_credentials',
   };
@@ -83,8 +85,10 @@ async function getUsers(ctx) {
     },
   };
 
-  const access_token = await OAuthApi.post('access_token', body, config);
-  console.log(access_token);
+  try {
+    const access_token = await OAuthApi.post('access_token', body, config);
+    console.log(access_token);
+  } catch (e) { console.log(e) }
 };
 
 router.post('/admin', authAdmin);
