@@ -1,6 +1,8 @@
 const router = require('koa-router')({ prefix: '/auth' });
 const _ = require('lodash');
 const axios = require('axios');
+const qs = require ('querystring');
+
 const config = require('../config.json');
 const skolon = require('../config.json').skolon;
 
@@ -25,13 +27,16 @@ async function logoutAdmin(ctx) {
     };
 }
 
-const qs = require ('querystring');
 
 async function authSkolon(ctx) {
   const code = ctx.params.code;
 
-  let api = axios.create({
-    baseURL: 'https://idp.skolon/oauth/',
+  let OAuthApi = axios.create({
+    baseURL: 'https://idp.skolon.com/oauth/',
+  });
+
+  let PartnerApi = axios.create({
+    baseURL: 'https://api.skolon.com/v2/partner/',
   });
 
 
@@ -50,8 +55,17 @@ async function authSkolon(ctx) {
   };
 
   try {
-    const login = await api.post('access_token', qs.stringify(body), config);
-    console.log(login);
+    const login = await OAuthApi.post('access_token', qs.stringify(body), config);
+    let partnerConfig = {
+      headers: {
+        'Authorization': 'Bearer ' + login.data.access_token,
+      },
+    };
+    const user = PartnerApi.get('user/session', partnerConfig);
+    console.log(user);
+    // ctx.body = {
+    //   login,
+    // };
   } catch (e) { console.log(e) }
 }
 
