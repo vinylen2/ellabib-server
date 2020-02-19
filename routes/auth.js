@@ -86,8 +86,18 @@ async function getUsers(ctx) {
   };
 
   try {
-    const access_token = await OAuthApi.post('access_token', body, config);
-    console.log(access_token);
+    const auth = await OAuthApi.post('access_token', qs.stringify(body), config);
+    let partnerConfig = {
+      headers: {
+        'Authorization': 'Bearer ' + auth.data.access_token,
+      },
+    };
+
+    const users = await PartnerApi.get('user', partnerConfig);
+    ctx.body = {
+      data: users.data,
+    };
+
   } catch (e) { console.log(e) }
 };
 
