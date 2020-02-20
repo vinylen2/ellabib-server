@@ -127,8 +127,7 @@ async function authSkolon(ctx) {
 
       ctx.body = {
         data: {
-          user,
-          access_token: session.data.access_token,
+          user: user[0].dataValues,
         },
       };
     } catch (e) { console.log(e) }
