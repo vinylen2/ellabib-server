@@ -2,7 +2,6 @@ const router = require('koa-router')({ prefix: '/books' });
 const Promise = require('bluebird');
 const _ = require('lodash');
 const axios = require('axios');
-const cookie = require('cookie');
 const slugify = require('slugify');
 const { Book, Genre, Author, Review, User, Isbn, LibraryId } = require('../models');
 const bokInfoApi = require('../config.json').bokInfo;
@@ -12,16 +11,6 @@ const onixGetters = require('./assets/onix-getters.js');
 
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
-
-async function authAdmin(ctx, next) {
-  try {
-    if (cookie.parse(ctx.header.cookie).admin) {
-      await next();
-    }
-  } catch (e) {
-    ctx.status = 403;
-  }
-}
 
 function flattenQueries(array) {
   return _.flatten(array.query.map((query) => {
@@ -485,7 +474,7 @@ async function getBooksReadById (ctx) {
 
 
 
-router.patch('/edit/', authAdmin, editBook);
+router.patch('/edit/', editBook);
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);

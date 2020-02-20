@@ -2,6 +2,10 @@ const router = require('koa-router')({ prefix: '/auth' });
 const _ = require('lodash');
 const axios = require('axios');
 const qs = require ('querystring');
+const moment = require('moment');
+
+const jwt = require('jsonwebtoken');
+const secret = require('../config.json').secret;
 
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
@@ -80,7 +84,6 @@ async function authSkolon(ctx) {
         },
       });
 
-      // erorr handling if created?
       const userId = user[0].dataValues.id;
       const classId = dbClass[0].dataValues.id;
 
@@ -93,23 +96,28 @@ async function authSkolon(ctx) {
           },
         ],
       })
+
+      let date = moment().format();
+
       if (hasRelation == null) {
       // add createdAt and updatedAt for todays date
         const relation = await connection.query(`
           INSERT INTO UserClass (createdAt, updatedAt, classId, userId)
-          VALUES ('2017-10-04 14:49:18', '2017-10-04 14:49:18', (:classId), (:userId));
-        `, { replacements: { userId, classId }, type: Sequelize.QueryTypes.INSERT });
+          VALUES ((:date), (:date), (:classId), (:userId));
+        `, { replacements: { date, userId, classId }, type: Sequelize.QueryTypes.INSERT });
       } else {
         const relation = await connection.query(`
           UPDATE UserClass 
-          SET classId = (:classId)
+          SET classId = (:classId), (:updatedAt)
           WHERE userId = (:userId);
-        `, { replacements: { userId, classId }, type: Sequelize.QueryTypes.UPDATE });
+        `, { replacements: { userId, classId, date }, type: Sequelize.QueryTypes.UPDATE });
       }
 
+      const token = jwt.sign({ id: userId }, secret, { expiresIn: "4h" });
 
       ctx.body = {
         data: {
+          token,
           user: user[0].dataValues,
         },
       };
@@ -117,60 +125,14 @@ async function authSkolon(ctx) {
   } catch (e) { console.log(e) }
 }
 
-async function getUsers(ctx) {
-  let body = {
-    grant_type: 'client_credentials',
-  };
-
-  let buf = Buffer.from(`${skolon.client_id}:${skolon.client_secret}`);
-  let encoded = buf.toString('base64');
-
-  let config = {
-    headers: {
-      'Authorization': 'Basic ' + encoded,
-    },
-  };
-
-  try {
-    const auth = await OAuthApi.post('access_token', qs.stringify(body), config);
-    let partnerConfig = {
-      headers: {
-        'Authorization': 'Bearer ' + auth.data.access_token,
-      },
-    };
-
-    const users = await PartnerApi.get('group', partnerConfig);
-    ctx.body = {
-      data: users.data,
-    };
-
-  } catch (e) { console.log(e) }
-};
-
-
-const jwt = require('jsonwebtoken');
-const secret = require('../config.json').secret;
-
-async function auth(ctx) {
-  // should be extId from Skolon
-  const { extId } = ctx.request.body;
-
-  if (extId == 1) {
-    const token = jwt.sign({ id: extId }, secret, { expiresIn: "10000" });
-    ctx.body = token;
-  } else {
-    ctx.body = 'No user found';
-  }
-};
-
 const authenticated = require('../middleware/authenticated.js');
 
 async function stuff(ctx) {
+  console.log(date);
   ctx.body = 'yay';
 };
 
 router.get('/skolon/:code', authSkolon);
-//router.get('/users/', getUsers);
 router.post('/jwt', auth);
 router.get('/protected', authenticated, stuff);
 

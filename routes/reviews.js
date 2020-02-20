@@ -1,7 +1,6 @@
 const router = require('koa-router')({ prefix: '/reviews' });
 const busboy = require('koa-busboy');
 const Promise = require('bluebird');
-const cookie = require('cookie');
 const _ = require('lodash');
 const moment = require('moment');
 const { Review, User, Book } = require('../models');
@@ -18,26 +17,6 @@ const uploader = busboy({
   fnDestFilename: (fieldname, filename) => `${filename}-${uuidv4()}-${fieldname}.mp3`,
 });
 
-async function authAdmin(ctx, next) {
-  try {
-    if (cookie.parse(ctx.header.cookie).admin) {
-      await next();
-    }
-  } catch (e) {
-    ctx.status = 403;
-  }
-}
-
-async function authIp(ctx, next) {
-  try {
-    if (cookie.parse(ctx.header.cookie).publishReview || cookie.parse(ctx.header.cookie).admin) {
-      await next();
-    }
-  } catch (e) {
-    console.log(e);
-    ctx.status = 403;
-  }
-}
 
 /**
  * @api {get} /reviews Get all reviews from Book
@@ -490,7 +469,7 @@ async function updateRating() {
 
 };
 
-router.patch('/audio/edit', authAdmin, uploader, editReviewAudio);
+router.patch('/audio/edit', uploader, editReviewAudio);
 router.patch('/increment', incrementReviewPlay);
 router.post('/', uploader, publishReview);
 router.post('/simple', publishSimpleReview);
@@ -506,9 +485,4 @@ router.get('/update', updateRating);
 // router.get('/inactive', getInactiveReviews);
 
 // sharp routes
-router.patch('/delete', authAdmin, deleteReview);
-router.patch('/', authAdmin, activateReviews);
-router.patch('/rating', authAdmin, updateReviewRating);
-router.patch('/text', authAdmin, updateReviewText);
-router.get('/inactive', authAdmin, getInactiveReviews);
 module.exports = router;

@@ -60,6 +60,6 @@ async function switchAvatar(ctx) {
   }
 };
 
-router.get('/id/:id', getUserInfo);
 router.patch('/avatar', switchAvatar);
+router.get('/id/:id', getUserInfo);
 module.exports = router;
