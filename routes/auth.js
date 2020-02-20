@@ -122,6 +122,12 @@ async function authSkolon(ctx) {
           INSERT INTO UserClass (createdAt, updatedAt, classId, userId)
           VALUES ('2017-10-04 14:49:18', '2017-10-04 14:49:18', (:classId), (:userId));
         `, { replacements: { userId, classId }, type: Sequelize.QueryTypes.INSERT });
+      } else {
+        const relation = await connection.query(`
+          UPDATE UserClass 
+          SET classId = (:classId)
+          WHERE userId = (:userId);
+        `, { replacements: { userId, classId }, type: Sequelize.QueryTypes.UPDATE });
       }
 
 
