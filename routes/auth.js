@@ -103,14 +103,27 @@ async function authSkolon(ctx) {
         },
       });
 
+      // erorr handling if created?
       const userId = user[0].dataValues.id;
       const classId = dbClass[0].dataValues.id;
-      const relation = await connection.query(`
-        INSERT INTO UserClass (createdAt, updatedAt, classId, userId)
-        VALUES ('2017-10-04 14:49:18', '2017-10-04 14:49:18', (:classId), (:userId));
-      `, { replacements: { userId, classId }, type: Sequelize.QueryTypes.INSERT });
 
-      console.log(relation);
+      const hasRelation = await User.find({
+        where: { id: userId },
+        include: [
+          {
+            model: Class,
+            required: true,
+          },
+        ],
+      })
+      if (hasRelation == null) {
+      // add createdAt and updatedAt for todays date
+        const relation = await connection.query(`
+          INSERT INTO UserClass (createdAt, updatedAt, classId, userId)
+          VALUES ('2017-10-04 14:49:18', '2017-10-04 14:49:18', (:classId), (:userId));
+        `, { replacements: { userId, classId }, type: Sequelize.QueryTypes.INSERT });
+      }
+
 
       ctx.body = {
         data: {
@@ -154,7 +167,7 @@ async function getUsers(ctx) {
 
 router.post('/admin', authAdmin);
 router.get('/skolon/:code', authSkolon);
-// router.get('/users/', getUsers);
+//router.get('/users/', getUsers);
 router.get('/logout', logoutAdmin);
 
 module.exports = router;
