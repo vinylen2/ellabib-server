@@ -6,7 +6,6 @@ const qs = require ('querystring');
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
 
-const config = require('../config.json');
 const skolon = require('../config.json').skolon;
 const { User, Role, Class, SchoolUnit } = require('../models');
 
@@ -17,28 +16,6 @@ const OAuthApi = axios.create({
 const PartnerApi = axios.create({
   baseURL: 'https://api.skolon.com/v2/partner/',
 });
-
-async function authAdmin(ctx) {
-    const { username, password } = ctx.request.body;
-    let auth = false;
-
-    if (username.toLowerCase() == config.auth.username && password == config.auth.password) {
-        ctx.cookies.set('admin', true, { maxAge: 3600000 });
-        auth = true;
-    }
-
-    ctx.body = {
-        auth,
-    };
-}
-
-async function logoutAdmin(ctx) {
-    ctx.cookies.set('admin', false, { maxAge: 1 });
-    ctx.body = {
-        auth: false,
-    };
-}
-
 
 async function authSkolon(ctx) {
   const code = ctx.params.code;
@@ -170,9 +147,31 @@ async function getUsers(ctx) {
   } catch (e) { console.log(e) }
 };
 
-router.post('/admin', authAdmin);
+
+const jwt = require('jsonwebtoken');
+const secret = require('../config.json').secret;
+
+async function auth(ctx) {
+  // should be extId from Skolon
+  const { extId } = ctx.request.body;
+
+  if (extId == 1) {
+    const token = jwt.sign({ id: extId }, secret, { expiresIn: "10000" });
+    ctx.body = token;
+  } else {
+    ctx.body = 'No user found';
+  }
+};
+
+const authenticated = require('../middleware/authenticated.js');
+
+async function stuff(ctx) {
+  ctx.body = 'yay';
+};
+
 router.get('/skolon/:code', authSkolon);
 //router.get('/users/', getUsers);
-router.get('/logout', logoutAdmin);
+router.post('/jwt', auth);
+router.get('/protected', authenticated, stuff);
 
 module.exports = router;
