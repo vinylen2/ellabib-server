@@ -8,7 +8,7 @@ const authenticated = require('../middleware/authenticated.js');
 async function getUserInfo(ctx) {
   const userId = ctx.params.id;
 
-  if (userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
+  // if (userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
     const user = await connection.query(`
     SELECT U.id, U.firstName, U.lastName, U.extId,
       Ro.type as roleType, Ro.displayName as roleDisplayName,
@@ -37,7 +37,7 @@ async function getUserInfo(ctx) {
     ctx.body = {
       data: user,
     };
-  } else ctx.throw(403, 'Forbidden');
+  // } else ctx.throw(403, 'Forbidden');
 };
 
 async function switchAvatar(ctx) {
@@ -85,7 +85,7 @@ async function getFavouriteGenre(ctx) {
 };
 
 router.patch('/avatar', switchAvatar);
-router.get('/id/:id', authenticated, getUserInfo);
+router.get('/id/:id', getUserInfo);
 router.get('/favourite-genre/:id', getFavouriteGenre);
 
 module.exports = router;
