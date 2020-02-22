@@ -62,6 +62,30 @@ async function switchAvatar(ctx) {
   }
 };
 
+async function getFavouriteGenre(ctx) {
+  const userId = ctx.params.id;
+
+  const favouriteGenre = await connection.query(`
+    SELECT G.id, G.name, G.slug, COUNT(G.name) as userCount FROM books B
+      JOIN BookGenre BG ON B.id = BG.bookId
+      JOIN genres G ON BG.genreId = G.id
+      JOIN BookReview BR on B.id = BR.bookId
+      JOIN reviews R ON BR.reviewId = R.id
+      JOIN BookReviewer BRR ON R.id = BRR.reviewId
+      JOIN users U ON BRR.userId = U.id
+    WHERE U.id = (:userId)
+    GROUP BY G.id
+    ORDER BY userCount DESC
+    LIMIT 1;
+  `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+  ctx.body = {
+    favouriteGenre,
+  };
+};
+
 router.patch('/avatar', switchAvatar);
 router.get('/id/:id', authenticated, getUserInfo);
+router.get('/favourite-genre/:id', getFavouriteGenre);
+
 module.exports = router;
