@@ -11,46 +11,15 @@ module.exports = function modelExport(db, DataTypes) {
     pages: DataTypes.INTEGER,
     imageUrl: DataTypes.STRING,
     description: DataTypes.TEXT,
-    rating: DataTypes.FLOAT,
-    readCount: {
-      type: DataTypes.INTEGER,
+    rating: {
+      type: DataTypes.FLOAT,
       default: 0,
     },
+    // readCount: {
+    //   type: DataTypes.INTEGER,
+    //   default: 0,
+    // },
   });
-
-  Model.updateRating = async function (book, Review, id) {
-    try {
-      const reviews = await Review.findAll({
-        where: { active: true },
-        group: ['review.id'],
-        attributes: [
-          'rating',
-        ],
-        include: [
-          {
-            model: Model,
-            attributes: [
-              'id',
-            ],
-            where: { id },
-          },
-        ],
-      });
-      let totalSum = 0;
-      reviews.forEach((review) => {
-        totalSum += review.dataValues.rating;
-      });
-      const rating = totalSum / reviews.length;
-      const roundedRating = Math.round(rating * 2)/2;
-
-      book.update({
-        rating: roundedRating,
-      });
-
-    } catch (e) {
-      console.log(e);
-    }
-  };
 
   Model.associate = function (models) {
     this.belongsToMany(models.Genre, { through: 'BookGenre' });
@@ -60,6 +29,5 @@ module.exports = function modelExport(db, DataTypes) {
     this.belongsToMany(models.Author, { through: 'BookAuthor' });
     this.belongsToMany(models.Review, { through: 'BookReview' });
   };
-
   return Model;
 };

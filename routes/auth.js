@@ -137,10 +137,12 @@ async function authAdmin(ctx) {
   if (username === adminCredentials.username && password === adminCredentials.password) {
     const ellabibToken = jwt.sign({ userId: adminCredentials.userId, roleId: 3 }, secret, { expiresIn: "1h" });
     ctx.body = {
-      token: ellabibToken,
-      user: {
-        id: adminCredentials.userId,
-        roleId: 3,
+      data: {
+        token: ellabibToken,
+        user: {
+          id: adminCredentials.userId,
+          roleId: 3,
+        },
       },
     };
   } else {

@@ -3,11 +3,14 @@ const busboy = require('koa-busboy');
 const Promise = require('bluebird');
 const _ = require('lodash');
 const moment = require('moment');
-const { Review, User, Book } = require('../models');
+const { Review, User, Book, Isbn } = require('../models');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const { promisify } = require('util');
 const unlink = promisify(fs.unlink);
+
+const { connection } = require('../models');
+const Sequelize = require('sequelize');
 
 const filedest = '/var/www/html/audio';
 // const filedest = '/Users/gabriel/ellabib_audio';
@@ -18,63 +21,6 @@ const uploader = busboy({
 });
 
 
-/**
- * @api {get} /reviews Get all reviews from Book
- * @apiName getReviewsFromBook
- * @apiGroup Reviews
- * @apiExample {curl} Example usage:
- * curl -i http://localhost/8000/reviews/:id
- *
- * @apiParam {Number} id Unique ID of the Book to get Reviews from.
- *
- * @apiSuccess {Number} rating Rating of the book from Reviewer
- * @apiSuccess {Number} views Amount of views on the Review
- * @apiSuccess {String} description Description of the Book
- * @apiSuccess {String} review Review of the Book
- * @apiSuccess {Number} id Review unique ID
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": [
-        {
-          "id": 2,
-          "rating": 3,
-          "views": null,
-          "description": "Beskrivning",
-          "descriptionAudioUrl": null,
-          "review": "Recension",
-          "reviewAudioUrl": null,
-          "active": true,
-          "createdAt": "2017-07-13T11:29:36.000Z",
-          "updatedAt": "2017-07-13T11:29:36.000Z",
-          "BookReview": {
-            "createdAt": "2017-07-13T11:29:36.000Z",
-            "updatedAt": "2017-07-13T11:29:36.000Z",
-            "bookId": 4,
-            "reviewId": 2
-          },
-          "reviewers": [
-            {
-              "id": 1,
-              "name": "1a",
-              "createdAt": "2017-07-13T00:00:00.000Z",
-              "updatedAt": "2017-07-13T00:00:00.000Z",
-              "BookReviewer": {
-                "createdAt": "2017-07-13T11:29:36.000Z",
-                "updatedAt": "2017-07-13T11:29:36.000Z",
-                "reviewId": 2,
-                "reviewerId": 1
-              }
-            }
-          ]
-        },
-        { }
-      ],
-      "message": "a message"
-    }
- *
- */
 async function getReviewsFromBook(ctx) {
   const bookId = ctx.params.id;
   const allReviewsFromBook = await Book.findAll({
@@ -105,48 +51,6 @@ async function getReviewsFromBook(ctx) {
   }
 }
 
-/**
- * @api {post} /reviews Post new Review
- * @apiName publishReview
- * @apiGroup Reviews
- * @apiParamExample {json} Request-Example:
- *
- * {
-    "description": "The book is about...",
-    "review": "I thought the book was ...",
-    "rating": 4,
-    "reviewerId": 1,
-    "bookId": 2
-  }
- *
- * @apiParam {String} description Description of the Book
- * @apiParam {String} review Review of the Book
- * @apiParam {Number} rating Rating of the Book
- * @apiParam {Number} reviewerId Reviewers unique ID
- * @apiParam {Number} bookId Books unique ID
- *
- * @apiParam {String} description Description of the Book
- * @apiParam {String} review Review of the Book
- * @apiParam {Number} rating Rating of the Book
- * @apiParam {Number} reviewerId Reviewers unique ID
- * @apiParam {Number} bookId Books unique ID
- * @apiParam {Number} id Reviews unique ID
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": {
-        "description": "The book is about...",
-        "review": "I thought the book was ...",
-        "rating": 4,
-        "reviewerId": 1,
-        "bookId": 2,
-        "id": 1
-      },
-      "message": "a message"
-    }
- *
- */
 async function publishReview(ctx) {
   const { description, review, bookId, rating, userId } = ctx.request.body;
   const files = ctx.request.files;
@@ -244,20 +148,6 @@ async function activateReviews(ctx) {
     return entry.update({ active: true });
   }));
 
-  const updatedRatings = await Promise.all(reviews.map(async (id) => {
-    const book = await Book.findAll({
-      include: [
-        { model: Review,
-          where: { id, },
-          as: 'reviews',
-        },
-      ],
-    });
-    const bookId = book[0].id;
-    Book.updateRating(book[0], Review, bookId);
-    return true;
-  }));
-
   ctx.body = {
     data: activatedReviews,
     message: 'Succeeded',
@@ -296,70 +186,21 @@ async function editReviewAudio(ctx) {
   };
 }
 
-/**
- * @api {get} /inactive Get all inactive Reviews
- * @apiName getInactiveReviews
- * @apiGroup Reviews
- * @apiExample {curl} Example usage:
- * curl -i http://localhost/8000/reviews/inactive
- *
- * @apiSuccess {String} slug URL-friendly title of the Book
- * @apiSuccess {Number} views Amount of views of Book
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": [
-        {
-          "active": false,
-          "createdAt": "2017-07-25T10:34:43.000Z",
-          "createdAt": "2017-07-25T10:34:43.000Z",
-          "description": "",
-          "descriptionAudioUrl": "audio/fantasyboken-a7b906c6-7c1b-4a8d-81cd-c39b792ea9c3-descriptionRecording.mp3",
-          "id": 49,
-          "rating": 0,
-          "review": "",
-          "reviewAudioUrl": null,
-          "updatedAt": "2017-07-25T10:34:43.000Z",
-          "views": null,
-          books: [
-            {
-              "createdAt": "2017-07-04T15:09:48.000Z",
-              "id": 1,
-              "imageUrl": "tidningsmysteriet.jpg",
-              "isbn": 9780141043029,
-              "pages": 20,
-              "rating": 5,
-              "slug": "tidningsmysteriet",
-              "title": "Tidningsmysteriet",
-              "updatedAt": "2017-07-04T15:09:48.000Z",
-              "views": null
-            }
-          ]
-        }
-      ],
-      "message": "Review activated"
-    }
- *
- */
 async function getInactiveReviews(ctx) {
   moment.locale('sv');
-  const inactiveReviews = await Review.findAll({
-    where: {
-      active: false,
-      deleted: false,
-    },
-    include: [
-      { model: Book, exclude: ['createdAt', 'updatedAt'] },
-    ],
-  });
-
-  inactiveReviews.forEach((review) => {
-    review.dataValues.title = review.books[0].title;
-    review.dataValues.slug = review.books[0].slug;
-    review.dataValues.date = moment(review.createdAt).format('DD/MM-YY');
-    review.dataValues.time = moment(review.createdAt).format('hh:mm');
-  });
+  const inactiveReviews = await connection.query(`
+    SELECT c.displayName as writtenBy, 
+      b.title, b.description, b.slug,
+      r.review, r.reviewAudioUrl, r.descriptionAudioUrl, r.rating, r.createdAt, r.id
+    FROM reviews r
+      JOIN BookReviewer brr ON r.id = brr.reviewId
+      JOIN users u ON brr.userId = u.id
+      JOIN BookReview br ON r.id = br.reviewId
+      JOIN books b ON br.bookId = b.id
+      JOIN UserClass uc ON u.id = uc.userId
+      JOIN classes c ON uc.classId = c.id
+    WHERE r.active = false AND r.simple = false;
+  `, { type: Sequelize.QueryTypes.SELECT });
 
   ctx.body = {
     data: inactiveReviews,
@@ -478,11 +319,11 @@ router.get('/count', getReviewCount);
 router.get('/update', updateRating);
 
 // dev routes
-// router.patch('/delete', deleteReview);
-// router.patch('/', activateReviews);
-// router.patch('/rating', updateReviewRating);
-// router.patch('/text', updateReviewText);
-// router.get('/inactive', getInactiveReviews);
+router.patch('/delete', deleteReview);
+router.patch('/', activateReviews);
+router.patch('/rating', updateReviewRating);
+router.patch('/text', updateReviewText);
+router.get('/inactive', getInactiveReviews);
 
 // sharp routes
 module.exports = router;

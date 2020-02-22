@@ -229,10 +229,13 @@ async function getBookFromIsbn(ctx) {
   const isbn = ctx.params.isbn;
 
   const book = await Book.findAll({
-    where: {
-      isbn,
-    },
     include: [
+      { 
+        model: Isbn,
+        where: {
+          isbn
+        },
+      },
       { model: Genre, as: 'genres' },
       { model: Author, as: 'authors' },
     ],
@@ -304,8 +307,6 @@ async function getBookFromSlug(ctx) {
   try {
     const book = await Book.findAll({
       where: { slug },
-      // attributes: [[Sequelize.fn('AVG', Sequelize.col('reviews.rating')), 'bookRating']],
-      // group: ['genres.id', 'authors.id', 'reviews.id'],
       include: [
         { model: Genre, as: 'genres' },
         { model: Author, as: 'authors' },
@@ -316,11 +317,29 @@ async function getBookFromSlug(ctx) {
         },
       ],
     });
+    let readCount = 0;
+    let rating = 0;
+    try {
+      const rr = await connection.query(`
+        SELECT COUNT(r.id) as readCount,
+            AVG(r.rating) as rating
+          FROM books b
+              JOIN BookReview br ON b.id = br.bookId
+              JOIN reviews r ON br.reviewId = r.id
+          WHERE b.slug = (:slug) AND r.active = true
+          GROUP BY b.id;
+        `, { replacements: { slug } }, { type: Sequelize.QueryTypes.SELECT });
+      readCount = rr[0][0].readCount;
+      rating = rr[0][0].rating;
+    } catch { }
 
-    ctx.status = 200;
+
     ctx.body = {
-      data: book[0],
-      message: 'Success',
+      data: {
+        book: book[0],
+        readCount,
+        rating,
+      }
     };
   } catch (e) {
     console.log(e);
@@ -332,28 +351,48 @@ async function getBookFromSlug(ctx) {
 }
 
 async function getRecentlyReviewedBooks(ctx) {
-  const reviews = await Review.findAll({
-    where: {
-      active: true,
-    },
-    limit: 10,
-    order: [['createdAt', 'DESC']],
-    include: [
-      { model: Book, as: 'books' },
-    ], 
-  });
+  const recentlyReviewed = await connection.query(`
+    SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title,
+      r.rating, r.id as reviewId,
+      g.id, g.slug as genreSlug,
+      c.displayName as classDisplayName,
+      a.id as authorId, CONCAT(a.firstname, a.lastname) as author
+    FROM books b
+      JOIN BookReview br ON b.id = br.bookId
+      JOIN BookReviewer brr ON br.reviewId = brr.reviewId
+      JOIN reviews r ON br.reviewId = r.id
+      JOIN BookGenre bg ON b.id = bg.bookId
+      JOIN genres g ON bg.genreId = g.id
+      JOIN users u ON brr.userId = u.id
+      JOIN UserClass uc ON u.id = uc.userId
+      JOIN classes c ON uc.classId = c.id 
+      JOIN BookAuthor ba ON b.id = ba.bookId
+      JOIN authors a ON ba.authorId = a.id
+    WHERE r.active
+    ORDER BY r.rating DESC
+    LIMIT 5;
+  `, { type: Sequelize.QueryTypes.SELECT });
 
   ctx.body = {
-    data: _.uniqBy(_.flatten(_.map(reviews, 'books')), 'id'),
-    message:'Success',
+    data: recentlyReviewed,
   };
 }
 
 async function getHighestRatedBooks(ctx) {
-  const books = await Book.findAll({
-    limit: 5,
-    order: [['rating', 'DESC']],
-  });
+  const books = await connection.query(`
+    SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title,
+      AVG(r.rating) as rating, MAX(g.slug) as genreSlug, CONCAT(MAX(a.firstname), ' ',MAX(a.lastname)) as author
+    FROM books b
+        JOIN BookReview br ON b.id = br.bookId
+        JOIN reviews r ON br.reviewId = r.id
+        JOIN BookGenre bg ON b.id = bg.bookId
+        JOIN genres g ON bg.genreId = g.id
+      JOIN BookAuthor ba ON b.id = ba.bookId
+      JOIN authors a ON ba.authorId = a.id
+    GROUP BY b.id
+    ORDER BY rating DESC
+    LIMIT 5;
+  `, { type: Sequelize.QueryTypes.SELECT });
 
   ctx.body = {
     data: books,
@@ -422,7 +461,6 @@ async function editBook(ctx) {
 const fs = require('fs');
 
 
-// fix this function!
 async function isReviewed(ctx) {
   const { slug, userId } = ctx.params;
 
@@ -471,20 +509,48 @@ async function getBooksReadById (ctx) {
   };
 };
 
+async function postBook(ctx) {
+  const { genreId, isbn, title, pages, authorId, description } = ctx.request.body;
+
+  const book = await Book.create({
+    title,
+    slug: slugify(title),
+    pages,
+    description,
+  });
+
+  book.setGenres(genreId);
+  if (authorId) {
+    book.setAuthors(authorId);
+  }
+
+  Isbn.create({
+    isbn,
+    bookId: book.dataValues.id,
+  });
+
+  ctx.body = {
+    data: {
+      slug: slugify(title),
+    },
+  };
+};
+
 
 
 router.patch('/edit/', editBook);
+router.post('/', postBook);
+
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);
 router.get('/', getAllBooks);
-router.get('/recently/reviewed', getRecentlyReviewedBooks);
+router.get('/recently', getRecentlyReviewedBooks);
 router.get('/highest', getHighestRatedBooks);
 router.get('/search', searchForBooks);
 router.get('/count', getCount);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
 router.get('/reviewed/:slug/:userId', isReviewed);
 router.get('/read/:id', getBooksReadById);
-
 
 module.exports = router;
