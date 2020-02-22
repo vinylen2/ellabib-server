@@ -89,8 +89,31 @@ async function getFavouriteGenre(ctx) {
   };
 };
 
+async function getLatestReads(ctx) {
+  const userId = ctx.params.id;
+
+  const latestReads = await connection.query(`
+    SELECT b.id, b.slug, b.imageUrl, b.title, b.pages,
+      r.rating, r.simple, r.createdAt
+    FROM books b
+      JOIN BookReview br ON b.id = br.bookId
+      JOIN BookReviewer brr ON br.reviewId = brr.reviewId
+      JOIN reviews r ON br.reviewId = r.id
+      JOIN users u ON brr.userId = u.id
+    WHERE u.id = (:userId) AND r.active
+    ORDER BY createdAt DESC
+    LIMIT 5;
+  `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+  ctx.body = {
+    data: latestReads,
+  };
+};
+
 router.patch('/avatar', switchAvatar);
 router.get('/id/:id', getUserInfo);
+router.get('/latest-reads/:id', getLatestReads);
+
 router.get('/favourite-genre/:id', getFavouriteGenre);
 
 module.exports = router;
