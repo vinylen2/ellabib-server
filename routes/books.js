@@ -371,7 +371,6 @@ async function getCount(ctx) {
       JOIN reviews R ON Br.reviewId = R.id
     WHERE R.active = true;
   `, { type: Sequelize.QueryTypes.SELECT });
-  console.log(result);
 
   const allBooks = await Book.count();
 

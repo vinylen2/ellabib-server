@@ -16,13 +16,10 @@ app.proxy = true;
 app.use(bodyParser());
 // app.use(errorHandler());
 
-// app.use(session());
-
-
 // Enable CORS
 app.use(cors({
   origin: 'http://localhost:8080',
-  //origin: 'https://ellabib.se',
+  // origin: 'https://ellabib.se',
   credentials: true,
   allowMethods: ['GET', 'PATCH', 'POST'],
   allowHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept'],

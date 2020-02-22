@@ -10,15 +10,16 @@ const secret = require('../config.json').secret;
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
 
+const adminCredentials = require('../config.json').adminCredentials;
 const skolon = require('../config.json').skolon;
-const { User, Role, Class, SchoolUnit } = require('../models');
+const { User, Class } = require('../models');
 
 const OAuthApi = axios.create({
-  baseURL: 'https://idp.skolon.com/oauth/',
+  baseURL: skolon.OAuthApi,
 });
 
 const PartnerApi = axios.create({
-  baseURL: 'https://api.skolon.com/v2/partner/',
+  baseURL: skolon.partnerApi,
 });
 
 async function authSkolon(ctx) {
@@ -40,9 +41,11 @@ async function authSkolon(ctx) {
 
   try {
     const login = await OAuthApi.post('access_token', qs.stringify(body), config);
-    let partnerConfig = {
+    const skolonToken = login.data.access_token;
+
+    const partnerConfig = {
       headers: {
-        'Authorization': 'Bearer ' + login.data.access_token,
+        'Authorization': 'Bearer ' + skolonToken,
       },
     };
 
@@ -62,16 +65,15 @@ async function authSkolon(ctx) {
         case 'STUDENT':
           roleId = 2;
           break;
-        default:
-          roleId = 2;
-          break;
       }
+
       const user = await User.findOrCreate({
         where: {
           extId: skolonUser.id,
         },
         defaults: {
           roleId,
+          avatarId: 13,
         },
       });
 
@@ -85,6 +87,7 @@ async function authSkolon(ctx) {
       });
 
       const userId = user[0].dataValues.id;
+      const dbRoleId = user[0].dataValues.roleId
       const classId = dbClass[0].dataValues.id;
 
       const hasRelation = await User.find({
@@ -108,16 +111,16 @@ async function authSkolon(ctx) {
       } else {
         const relation = await connection.query(`
           UPDATE UserClass 
-          SET classId = (:classId), (:updatedAt)
+          SET classId = (:classId), updatedAt = (:date)
           WHERE userId = (:userId);
         `, { replacements: { userId, classId, date }, type: Sequelize.QueryTypes.UPDATE });
       }
 
-      const token = jwt.sign({ id: userId }, secret, { expiresIn: "4h" });
+      const ellabibToken = jwt.sign({ id: userId, roleId: dbRoleId }, secret, { expiresIn: "1h" });
 
       ctx.body = {
         data: {
-          token,
+          token: ellabibToken,
           user: user[0].dataValues,
         },
       };
@@ -125,15 +128,36 @@ async function authSkolon(ctx) {
   } catch (e) { console.log(e) }
 }
 
+async function authAdmin(ctx) {
+  const { username, password } = ctx.request.body;
+  
+  if (!username) ctx.throw(422, 'Username required.');
+  if (!password) ctx.throw(422, 'Password required.');
+
+  if (username === adminCredentials.username && password === adminCredentials.password) {
+    const ellabibToken = jwt.sign({ userId: adminCredentials.userId, roleId: 3 }, secret, { expiresIn: "1h" });
+    ctx.body = {
+      token: ellabibToken,
+      user: {
+        id: adminCredentials.userId,
+        roleId: 3,
+      },
+    };
+  } else {
+    ctx.throw(422, 'Wrong credentials');
+  }
+};
+
 const authenticated = require('../middleware/authenticated.js');
+const adminAuthenticated = require('../middleware/adminAuthenticated.js');
 
 async function stuff(ctx) {
-  console.log(date);
   ctx.body = 'yay';
 };
 
+router.post('/admin', authAdmin);
 router.get('/skolon/:code', authSkolon);
-router.post('/jwt', auth);
-router.get('/protected', authenticated, stuff);
+
+router.get('/protected', adminAuthenticated, stuff);
 
 module.exports = router;
