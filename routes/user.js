@@ -20,7 +20,8 @@ async function getUserInfo(ctx) {
       A.id as avatarId,
       A.imageUrl as avatarImageUrl,
       A.displayName as avatarDisplayName,
-      A.type as avatarType
+      A.type as avatarType,
+      SU.id as schoolUnitId, SU.displayName as schoolUnitDisplayName
     FROM users U
       JOIN roles Ro ON U.roleId = Ro.id
       JOIN UserClass UC ON U.id = UC.userId
@@ -30,8 +31,10 @@ async function getUserInfo(ctx) {
       JOIN BookReview Br ON R.id = Br.reviewId
       JOIN books B ON Br.bookId = B.id
       JOIN avatars A ON U.avatarId = A.id
+      JOIN UserSchoolUnit USU ON U.id = USU.userId
+      JOIN schoolUnits SU ON USU.schoolUnitId = SU.id 
     WHERE U.id = (:userId)
-    GROUP BY U.id, C.id, C.displayName;
+    GROUP BY U.id, C.id, C.displayName, SU.id;
     `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
 
     ctx.body = {
@@ -66,7 +69,7 @@ async function getFavouriteGenre(ctx) {
   const userId = ctx.params.id;
 
   const favouriteGenre = await connection.query(`
-    SELECT G.id, G.name, G.slug, COUNT(G.name) as userCount FROM books B
+    SELECT G.id as genreId, G.name, G.slug, COUNT(G.name) as userCount, U.id as userId FROM books B
       JOIN BookGenre BG ON B.id = BG.bookId
       JOIN genres G ON BG.genreId = G.id
       JOIN BookReview BR on B.id = BR.bookId
@@ -80,7 +83,9 @@ async function getFavouriteGenre(ctx) {
   `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
 
   ctx.body = {
-    favouriteGenre,
+    data: {
+      favouriteGenre: favouriteGenre[0],
+    }
   };
 };
 
