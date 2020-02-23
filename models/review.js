@@ -5,7 +5,6 @@ const tableName = path.basename(__filename, '.js');
 module.exports = function modelExport(db, DataTypes) {
   const Model = db.define(tableName, {
     rating: DataTypes.INTEGER,
-    views: DataTypes.INTEGER,
     descriptionAudioUrl: DataTypes.STRING,
     review: DataTypes.TEXT,
     reviewAudioUrl: DataTypes.STRING,

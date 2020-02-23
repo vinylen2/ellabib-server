@@ -356,7 +356,7 @@ async function getRecentlyReviewedBooks(ctx) {
       r.rating, r.id as reviewId,
       g.id, g.slug as genreSlug,
       c.displayName as classDisplayName,
-      a.id as authorId, CONCAT(a.firstname, a.lastname) as author
+      a.id as authorId, CONCAT(a.firstname, ' ', a.lastname) as author
     FROM books b
       JOIN BookReview br ON b.id = br.bookId
       JOIN BookReviewer brr ON br.reviewId = brr.reviewId
@@ -381,14 +381,16 @@ async function getRecentlyReviewedBooks(ctx) {
 async function getHighestRatedBooks(ctx) {
   const books = await connection.query(`
     SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title,
-      AVG(r.rating) as rating, MAX(g.slug) as genreSlug, CONCAT(MAX(a.firstname), ' ',MAX(a.lastname)) as author
+      AVG(r.rating) as rating, MAX(g.slug) as genreSlug, CONCAT(MAX(a.firstname), ' ', MAX(a.lastname)) as author,
+      COUNT(r.rating) as readCount
     FROM books b
-        JOIN BookReview br ON b.id = br.bookId
-        JOIN reviews r ON br.reviewId = r.id
-        JOIN BookGenre bg ON b.id = bg.bookId
-        JOIN genres g ON bg.genreId = g.id
+      JOIN BookReview br ON b.id = br.bookId
+      JOIN reviews r ON br.reviewId = r.id
+      JOIN BookGenre bg ON b.id = bg.bookId
+      JOIN genres g ON bg.genreId = g.id
       JOIN BookAuthor ba ON b.id = ba.bookId
       JOIN authors a ON ba.authorId = a.id
+    WHERE r.active = true
     GROUP BY b.id
     ORDER BY rating DESC
     LIMIT 5;
@@ -536,7 +538,20 @@ async function postBook(ctx) {
   };
 };
 
+async function addImage(ctx) {
+  const { imageUrl, bookId } = ctx.request.body;
+  Book.update(
+    { imageUrl },
+    { where: { id: bookId }}
+  );
+  ctx.body = {
+    imageUrl,
+    bookId,
+  };
 
+}
+
+router.post('/image', addImage);
 
 router.patch('/edit/', editBook);
 router.post('/', postBook);

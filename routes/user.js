@@ -83,23 +83,27 @@ async function getFavouriteGenre(ctx) {
   `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
 
   ctx.body = {
-    data: {
-      favouriteGenre: favouriteGenre[0],
-    }
+    data: favouriteGenre[0],
   };
 };
 
-async function getLatestReads(ctx) {
+async function getRecentlyRead(ctx) {
   const userId = ctx.params.id;
 
   const latestReads = await connection.query(`
-    SELECT b.id, b.slug, b.imageUrl, b.title, b.pages,
-      r.rating, r.simple, r.createdAt
+    SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title, b.pages,
+      r.rating, r.id as reviewId, r.simple, r.createdAt,
+      g.id, g.slug as genreSlug,
+      a.id as authorId, CONCAT(a.firstname, ' ', a.lastname) as author
     FROM books b
       JOIN BookReview br ON b.id = br.bookId
       JOIN BookReviewer brr ON br.reviewId = brr.reviewId
       JOIN reviews r ON br.reviewId = r.id
       JOIN users u ON brr.userId = u.id
+      JOIN BookGenre bg ON b.id = bg.bookId
+      JOIN genres g ON bg.genreId = g.id
+      JOIN BookAuthor ba ON b.id = ba.bookId
+      JOIN authors a ON ba.authorId = a.id
     WHERE u.id = (:userId) AND r.active
     ORDER BY createdAt DESC
     LIMIT 5;
@@ -112,7 +116,7 @@ async function getLatestReads(ctx) {
 
 router.patch('/avatar', switchAvatar);
 router.get('/id/:id', getUserInfo);
-router.get('/latest-reads/:id', getLatestReads);
+router.get('/recently-read/:id', getRecentlyRead);
 
 router.get('/favourite-genre/:id', getFavouriteGenre);
 
