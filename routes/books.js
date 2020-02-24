@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 const _ = require('lodash');
 const axios = require('axios');
 const slugify = require('slugify');
-const { Book, Genre, Author, Review, User, Isbn, LibraryId } = require('../models');
+const { Book, Genre, Author, Review, User, Isbn, LibraryId, Class } = require('../models');
 const bokInfoApi = require('../config.json').bokInfo;
 const gApi = require('../config.json').gapi;
 const onix = require('onix');
@@ -303,43 +303,47 @@ async function getBookFromIsbn(ctx) {
 }
 async function getBookFromSlug(ctx) {
   const slug = ctx.params.slug;
+  let userId = null;
+  let isReviewedByUser = true;
 
   try {
-    const book = await Book.findAll({
-      where: { slug },
-      include: [
-        { model: Genre, as: 'genres' },
-        { model: Author, as: 'authors' },
-        { model: Review,
-          where: { active: true, simple: false, },
-          required: false,
-          as: 'reviews',
-        },
-      ],
-    });
-    let readCount = 0;
-    let rating = 0;
-    try {
-      const rr = await connection.query(`
-        SELECT COUNT(r.id) as readCount,
-            AVG(r.rating) as rating
-          FROM books b
-              JOIN BookReview br ON b.id = br.bookId
-              JOIN reviews r ON br.reviewId = r.id
-          WHERE b.slug = (:slug) AND r.active = true
-          GROUP BY b.id;
-        `, { replacements: { slug } }, { type: Sequelize.QueryTypes.SELECT });
-      readCount = rr[0][0].readCount;
-      rating = rr[0][0].rating;
-    } catch { }
+    const book = await connection.query(`
+    SELECT b.title, b.slug, b.id, b.pages, b.description, b.imageUrl,
+      COUNT(r.id) as readCount, AVG(r.rating) as rating, 
+      MAX(g.slug) as genreSlug, MAX(g.id) as genreId, MAX(g.name) as genreDisplayName,
+      MAX(a.id) as authorId, CONCAT(MAX(a.firstname), ' ', MAX(a.lastname)) as author
+    FROM books b
+        JOIN BookGenre bg ON b.id = bg.bookId
+        JOIN genres g ON bg.genreId = g.id
+        JOIN BookAuthor ba ON b.id = ba.bookId
+        JOIN authors a ON ba.authorId = a.id
+        LEFT JOIN BookReview br ON b.id = br.bookId
+        LEFT JOIN reviews r ON br.reviewId = r.id AND r.active
+    WHERE b.slug = (:slug) 
+    GROUP BY b.id; 
+    `, { replacements: { slug } }, { type: Sequelize.QueryTypes.SELECT });
 
+    if (ctx.query.userId && !ctx.query.userId[0] == '') {
+      userId = ctx.query.userId[0];
+      const isReviewed = await connection.query(`
+      SELECT U.id
+      FROM Users U
+        JOIN BookReviewer BRR ON U.id = BRR.userId
+        JOIN Reviews R ON BRR.reviewId = R.id
+        JOIN BookReview Br ON R.id = Br.reviewId
+        JOIN Books B ON Br.bookId = B.id
+      WHERE B.slug = (:slug) AND U.id = (:userId);
+      `, { replacements: { slug, userId }, type: Sequelize.QueryTypes.SELECT });
+      if (!isReviewed.length > 0) {
+        isReviewedByUser = false;
+      }
+    }
 
     ctx.body = {
       data: {
-        book: book[0],
-        readCount,
-        rating,
-      }
+        isReviewedByUser,
+        book: book[0][0],
+      },
     };
   } catch (e) {
     console.log(e);
@@ -353,7 +357,7 @@ async function getBookFromSlug(ctx) {
 async function getRecentlyReviewedBooks(ctx) {
   const recentlyReviewed = await connection.query(`
     SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title,
-      r.rating, r.id as reviewId,
+      r.rating, r.id as reviewId, r.updatedAt as publishDate,
       g.id, g.slug as genreSlug,
       c.displayName as classDisplayName,
       a.id as authorId, CONCAT(a.firstname, ' ', a.lastname) as author
@@ -369,7 +373,7 @@ async function getRecentlyReviewedBooks(ctx) {
       JOIN BookAuthor ba ON b.id = ba.bookId
       JOIN authors a ON ba.authorId = a.id
     WHERE r.active
-    ORDER BY r.rating DESC
+    ORDER BY r.updatedAt DESC
     LIMIT 5;
   `, { type: Sequelize.QueryTypes.SELECT });
 
@@ -462,30 +466,6 @@ async function editBook(ctx) {
 
 const fs = require('fs');
 
-
-async function isReviewed(ctx) {
-  const { slug, userId } = ctx.params;
-
-  const isReviewed = await connection.query(`
-  SELECT U.id
-  FROM Users U
-    JOIN BookReviewer BRR ON U.id = BRR.userId
-    JOIN Reviews R ON BRR.reviewId = R.id
-    JOIN BookReview Br ON R.id = Br.reviewId
-    JOIN Books B ON Br.bookId = B.id
-  WHERE B.slug = (:slug) AND U.id = (:userId);
-  `, { replacements: { slug, userId }, type: Sequelize.QueryTypes.SELECT });
-
-  let isReviewedByUser = false;
-  if (isReviewed.length > 0) {
-    isReviewedByUser = true;
-  }
-  ctx.status = 200;
-  ctx.body = {
-    isReviewedByUser,
-  };
-};
-
 async function getBooksReadById (ctx) {
   const userId = ctx.params.id;
 
@@ -565,7 +545,6 @@ router.get('/highest', getHighestRatedBooks);
 router.get('/search', searchForBooks);
 router.get('/count', getCount);
 router.get('/genre/:genre/search', searchForBooksWithGenre);
-router.get('/reviewed/:slug/:userId', isReviewed);
 router.get('/read/:id', getBooksReadById);
 
 module.exports = router;

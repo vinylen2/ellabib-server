@@ -11,10 +11,6 @@ module.exports = function modelExport(db, DataTypes) {
     pages: DataTypes.INTEGER,
     imageUrl: DataTypes.STRING,
     description: DataTypes.TEXT,
-    rating: {
-      type: DataTypes.FLOAT,
-      default: 0,
-    },
     // readCount: {
     //   type: DataTypes.INTEGER,
     //   default: 0,

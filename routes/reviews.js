@@ -12,8 +12,8 @@ const unlink = promisify(fs.unlink);
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
 
-const filedest = '/var/www/html/audio';
-// const filedest = '/Users/gabriel/ellabib_audio';
+// const filedest = '/var/www/html/audio';
+const filedest = '/Users/gabriel/ellabib_audio';
 
 const uploader = busboy({
   dest: filedest,
@@ -22,37 +22,29 @@ const uploader = busboy({
 
 
 async function getReviewsFromBook(ctx) {
-  const bookId = ctx.params.id;
-  const allReviewsFromBook = await Book.findAll({
-    where: { id: bookId },
-    include: [
-      { model: Review,
-        where: { active: true, simple: false, },
-        as: 'reviews',
-        include: [
-          { model: User },
-        ],
-      },
-    ],
-  });
+  const slug = ctx.params.slug;
+  const reviews = await connection.query(`
+    SELECT r.id, r.rating, r.review, r.descriptionAudioUrl, r.reviewAudioUrl, r.updatedAt,
+      c.displayName
+    FROM reviews r
+        JOIN BookReview br ON r.id = br.reviewId
+        JOIN books b ON br.bookId = b.id
+        JOIN BookReviewer brr ON br.reviewId = brr.reviewId
+      JOIN users u ON brr.userId = u.id
+        JOIN UserClass uc ON u.id = uc.userId
+        JOIN classes c ON uc.classId = c.id
+    WHERE b.slug = (:slug) AND r.active AND !r.simple
+    ORDER BY r.updatedAt DESC;
+  `, { replacements: { slug }, type: Sequelize.QueryTypes.SELECT });
 
-  // try catch error on empty array
-  try {
-    const reviews = allReviewsFromBook[0].dataValues.reviews;
-    ctx.body = {
-      data: reviews,
-      message: 'a message',
-    };
-  } catch (e) {
-    ctx.body = {
-      data: null,
-      message: 'No reviews found',
-    };
-  }
+  ctx.body = {
+    data: reviews,
+  };
+
 }
 
 async function publishReview(ctx) {
-  const { description, review, bookId, rating, userId } = ctx.request.body;
+  const { review, bookId, rating, userId } = ctx.request.body;
   const files = ctx.request.files;
 
   let descriptionAudioUrl;
@@ -73,7 +65,6 @@ async function publishReview(ctx) {
   const book = await Book.findById(bookId);
   const user = await User.findById(userId);
   const publishedReview = await Review.create({
-    description,
     descriptionAudioUrl,
     reviewAudioUrl,
     review,
@@ -83,7 +74,7 @@ async function publishReview(ctx) {
   });
 
   publishedReview.addUsers(user);
-  publishedReview.addBooks(book).then();
+  publishedReview.addBooks(book);
 
   ctx.body = {
     data: publishedReview,
@@ -221,27 +212,6 @@ async function getReviewCount(ctx) {
   };
 }
 
-async function incrementReviewPlay(ctx) {
-  const { reviewId, type } = ctx.request.body;
-  const reviewToIncrement = await Review.findById(reviewId);
-
-  if (type === 'review') {
-    const value = reviewToIncrement.reviewPlays + 1;
-    const incrementedReview = await reviewToIncrement.update({
-      reviewPlays: value,
-    });
-    return true;
-  }
-  const value = reviewToIncrement.descriptionPlays + 1;
-  const incrementedReview = await reviewToIncrement.update({
-    descriptionPlays: value,
-  });
-
-  ctx.body = {
-    data: incrementedReview,
-  };
-}
-
 async function updateReviewRating(ctx) {
   const { reviewId, rating } = ctx.request.body;
   const reviewToUpdate = await Review.findById(reviewId);
@@ -311,10 +281,9 @@ async function updateRating() {
 };
 
 router.patch('/audio/edit', uploader, editReviewAudio);
-router.patch('/increment', incrementReviewPlay);
 router.post('/', uploader, publishReview);
 router.post('/simple', publishSimpleReview);
-router.get('/id/:id', getReviewsFromBook);
+router.get('/slug/:slug', getReviewsFromBook);
 router.get('/count', getReviewCount);
 router.get('/update', updateRating);
 
