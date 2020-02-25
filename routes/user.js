@@ -115,9 +115,13 @@ async function getRecentlyRead(ctx) {
 };
 
 router.patch('/avatar', switchAvatar);
-router.get('/id/:id', getUserInfo);
 router.get('/recently-read/:id', getRecentlyRead);
-
 router.get('/favourite-genre/:id', getFavouriteGenre);
+
+// PROD ROUTES
+// router.get('/id/:id', authenticated, getUserInfo);
+
+// DEV routes
+router.get('/id/:id', getUserInfo);
 
 module.exports = router;

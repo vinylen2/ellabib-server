@@ -25,7 +25,7 @@ async function getReviewsFromBook(ctx) {
   const slug = ctx.params.slug;
   const reviews = await connection.query(`
     SELECT r.id, r.rating, r.review, r.descriptionAudioUrl, r.reviewAudioUrl, r.updatedAt,
-      c.displayName
+      c.displayName as classDisplayName
     FROM reviews r
         JOIN BookReview br ON r.id = br.reviewId
         JOIN books b ON br.bookId = b.id
