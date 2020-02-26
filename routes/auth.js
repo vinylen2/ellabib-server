@@ -52,9 +52,12 @@ async function authSkolon(ctx) {
     const session = await PartnerApi.get('user/session', partnerConfig);
     const userResponse = await PartnerApi.get(`user?userId=${session.data.userId}`, partnerConfig);
     const userClassResponse = await PartnerApi.get(`group?userId=${session.data.userId}`, partnerConfig);
+    const userSchoolResponse = await PartnerApi.get(`school?userId=${session.data.userId}`, partnerConfig);
 
     const skolonUser = userResponse.data.users[0];
     const skolonUserClass = _.find(userClassResponse.data.groups, { type: 'CLASS' });
+    const skolonUserSchool = userSchoolResponse.data.users[0];
+    const skolonUserSchoolUnitCode = _.find(userSchoolResponse.data.unitCodes, { type: 'SchoolUnitCode' });
 
     try {
     let roleId;
@@ -86,9 +89,18 @@ async function authSkolon(ctx) {
         },
       });
 
+      const dbSchool = await SchoolUnit.findOrCreate({
+        where: { extId: skolonUserSchool.id },
+        defaults: {
+          displayName: skolonUserSchool.name,
+          schoolUnitCode: skolonUserSchoolUnitCode,
+        },
+      });
+
       const userId = user[0].dataValues.id;
       const dbRoleId = user[0].dataValues.roleId
       const classId = dbClass[0].dataValues.id;
+      const schoolUnitId = dbSchool[0].dataValues.id;
 
       const hasRelation = await User.find({
         where: { id: userId },
@@ -114,6 +126,30 @@ async function authSkolon(ctx) {
           SET classId = (:classId), updatedAt = (:date)
           WHERE userId = (:userId);
         `, { replacements: { userId, classId, date }, type: Sequelize.QueryTypes.UPDATE });
+      }
+
+      const hasRelationSchool = await User.find({
+        where: { id: userId },
+        include: [
+          {
+            model: SchoolUnit,
+            required: true,
+          },
+        ],
+      })
+
+      if (hasRelationSchool == null) {
+      // add createdAt and updatedAt for todays date
+        const relationSchool = await connection.query(`
+          INSERT INTO UserSchoolUnit (createdAt, updatedAt, schoolUnitId, userId)
+          VALUES ((:date), (:date), (:schoolUnitId), (:userId));
+        `, { replacements: { date, userId, schoolUnitId }, type: Sequelize.QueryTypes.INSERT });
+      } else {
+        const relation = await connection.query(`
+          UPDATE UserSchoolUnit
+          SET schoolUnitId = (:schoolUnitId), updatedAt = (:date)
+          WHERE userId = (:userId);
+        `, { replacements: { userId, schoolUnitId, date }, type: Sequelize.QueryTypes.UPDATE });
       }
 
       const ellabibToken = jwt.sign({ id: userId, roleId: dbRoleId }, secret, { expiresIn: "1h" });

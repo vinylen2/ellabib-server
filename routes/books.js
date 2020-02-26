@@ -327,11 +327,11 @@ async function getBookFromSlug(ctx) {
       userId = ctx.query.userId[0];
       const isReviewed = await connection.query(`
       SELECT U.id
-      FROM Users U
+      FROM users U
         JOIN BookReviewer BRR ON U.id = BRR.userId
-        JOIN Reviews R ON BRR.reviewId = R.id
+        JOIN reviews R ON BRR.reviewId = R.id
         JOIN BookReview Br ON R.id = Br.reviewId
-        JOIN Books B ON Br.bookId = B.id
+        JOIN books B ON Br.bookId = B.id
       WHERE B.slug = (:slug) AND U.id = (:userId);
       `, { replacements: { slug, userId }, type: Sequelize.QueryTypes.SELECT });
       if (!isReviewed.length > 0) {
