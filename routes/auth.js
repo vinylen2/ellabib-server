@@ -12,7 +12,7 @@ const Sequelize = require('sequelize');
 
 const adminCredentials = require('../config.json').adminCredentials;
 const skolon = require('../config.json').skolon;
-const { User, Class } = require('../models');
+const { User, Class, SchoolUnit } = require('../models');
 
 const OAuthApi = axios.create({
   baseURL: skolon.OAuthApi,
@@ -56,8 +56,8 @@ async function authSkolon(ctx) {
 
     const skolonUser = userResponse.data.users[0];
     const skolonUserClass = _.find(userClassResponse.data.groups, { type: 'CLASS' });
-    const skolonUserSchool = userSchoolResponse.data.users[0];
-    const skolonUserSchoolUnitCode = _.find(userSchoolResponse.data.schools[0].unitCodes[0], { type: 'SchoolUnitCode' });
+    const skolonUserSchool = userSchoolResponse.data.schools[0];
+    // const skolonUserSchoolUnitCode = _.find(userSchoolResponse.data.schools[0].unitCodes[0], { type: 'SchoolUnitCode' });
 
     try {
     let roleId;
@@ -93,7 +93,7 @@ async function authSkolon(ctx) {
         where: { extId: skolonUserSchool.id },
         defaults: {
           displayName: skolonUserSchool.name,
-          schoolUnitCode: skolonUserSchoolUnitCode,
+          // schoolUnitCode: skolonUserSchoolUnitCode,
         },
       });
 
@@ -157,9 +157,6 @@ async function authSkolon(ctx) {
       const dbUser = await connection.query(`
       SELECT U.id, U.firstName, U.lastName, U.extId,
         Ro.type as roleType, Ro.displayName as roleDisplayName,
-        SUM(B.pages) as pagesRead,
-        COUNT(R.id) as booksRead,
-        SUM(R.simple = 0) as reviewsWritten,
         C.displayName as classDisplayName,
         C.id as classId,
         A.id as avatarId,
@@ -171,15 +168,10 @@ async function authSkolon(ctx) {
         JOIN roles Ro ON U.roleId = Ro.id
         JOIN UserClass UC ON U.id = UC.userId
         JOIN classes C ON UC.classId = C.id
-        JOIN BookReviewer BRR ON U.id = BRR.userId
-        JOIN reviews R ON BRR.reviewId = R.id
-        JOIN BookReview Br ON R.id = Br.reviewId
-        JOIN books B ON Br.bookId = B.id
         JOIN avatars A ON U.avatarId = A.id
         JOIN UserSchoolUnit USU ON U.id = USU.userId
         JOIN schoolUnits SU ON USU.schoolUnitId = SU.id 
-      WHERE U.id = (:userId)
-      GROUP BY U.id, C.id, C.displayName, SU.id;
+      WHERE U.id = (:userId);
       `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
 
       ctx.body = {

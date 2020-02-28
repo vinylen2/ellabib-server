@@ -52,7 +52,6 @@ async function getClassById(ctx) {
   ctx.body = {
     data: dbClass[0],
   };
-
 }
 
 router.get('/', getClasses);

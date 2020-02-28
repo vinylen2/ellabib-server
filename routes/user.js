@@ -10,35 +10,96 @@ async function getUserInfo(ctx) {
 
   // if (userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
     const user = await connection.query(`
-    SELECT U.id, U.firstName, U.lastName, U.extId,
-      Ro.type as roleType, Ro.displayName as roleDisplayName,
-      SUM(B.pages) as pagesRead,
-      COUNT(R.id) as booksRead,
-      SUM(R.simple = 0) as reviewsWritten,
-      C.displayName as classDisplayName,
-      C.id as classId,
-      A.id as avatarId,
-      A.imageUrl as avatarImageUrl,
-      A.displayName as avatarDisplayName,
-      A.type as avatarType,
-      SU.id as schoolUnitId, SU.displayName as schoolUnitDisplayName
-    FROM users U
-      JOIN roles Ro ON U.roleId = Ro.id
-      JOIN UserClass UC ON U.id = UC.userId
-      JOIN classes C ON UC.classId = C.id
-      JOIN BookReviewer BRR ON U.id = BRR.userId
-      JOIN reviews R ON BRR.reviewId = R.id
-      JOIN BookReview Br ON R.id = Br.reviewId
-      JOIN books B ON Br.bookId = B.id
-      JOIN avatars A ON U.avatarId = A.id
-      JOIN UserSchoolUnit USU ON U.id = USU.userId
-      JOIN schoolUnits SU ON USU.schoolUnitId = SU.id 
-    WHERE U.id = (:userId)
-    GROUP BY U.id, C.id, C.displayName, SU.id;
+      SELECT 
+        C.id as classId,
+        SU.id as schoolUnitId,
+        SUM(B.pages) as pagesRead,
+        COUNT(R.id) as booksRead,
+        SUM(R.simple = 0) as reviewsWritten
+      FROM users u
+        JOIN UserSchoolUnit USU ON U.id = USU.userId
+        JOIN schoolUnits SU ON USU.schoolUnitId = SU.id
+        JOIN UserClass UC ON U.id = UC.classId
+        JOIN classes C ON UC.classId = C.id
+        JOIN BookReviewer BRR ON U.id = BRR.userId
+        JOIN reviews R ON BRR.reviewId = R.id
+        JOIN BookReview Br ON R.id = Br.reviewId
+        JOIN books B ON Br.bookId = B.id
+      WHERE U.id = (:userId)
+        GROUP BY U.id, SU.id;
     `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
 
+      const dbClass = await connection.query(`
+      SELECT C.id,
+        SUM(B.pages) as pagesRead, 
+        C.displayName, 
+        COUNT(R.id) as booksRead,
+        SUM(R.simple = 0) as reviewsWritten
+      FROM users U   
+        JOIN BookReviewer BRR ON U.id = BRR.userId
+        JOIN reviews R ON BRR.reviewId = R.id
+        JOIN BookReview Br ON R.id = Br.reviewId
+        JOIN books B ON Br.bookId = B.id
+        JOIN UserClass UC ON U.id = UC.classId
+        JOIN classes C ON UC.classId = C.id
+      WHERE c.id = (:classId)
+      AND R.active = TRUE
+      GROUP BY C.id;
+      `, { replacements: { classId: user[0].classId }, type: Sequelize.QueryTypes.SELECT });
+
+      const schoolUnit = await connection.query(`
+      SELECT SU.id, SU.displayName,
+        SUM(B.pages) as pagesRead,
+        SUM(R.simple = 0) as reviewsWritten,
+        COUNT(R.id) as booksRead
+      FROM schoolUnits SU
+        JOIN UserSchoolUnit USU ON SU.id = USU.schoolUnitId
+        JOIN users U ON USU.userId = U.id
+        JOIN BookReviewer BRR ON U.id = BRR.userId
+        JOIN reviews R ON BRR.reviewId = R.id
+        JOIN BookReview Br ON R.id = Br.reviewId
+        JOIN books B ON Br.bookId = B.id
+      WHERE SU.id = (:schoolUnitId)
+      AND R.active = TRUE
+      GROUP BY SU.id;
+      `, { replacements: { schoolUnitId: user[0].schoolUnitId }, type: Sequelize.QueryTypes.SELECT });
+
+    // const user = await connection.query(`
+    // SELECT U.id, U.firstName, U.lastName, U.extId,
+    //   Ro.type as roleType, Ro.displayName as roleDisplayName,
+    //   SUM(B.pages) as pagesRead,
+    //   COUNT(R.id) as booksRead,
+    //   SUM(R.simple = 0) as reviewsWritten,
+    //   C.displayName as classDisplayName,
+    //   C.id as classId,
+    //   A.id as avatarId,
+    //   A.imageUrl as avatarImageUrl,
+    //   A.displayName as avatarDisplayName,
+    //   A.type as avatarType,
+    //   SU.id as schoolUnitId, SU.displayName as schoolUnitDisplayName
+    // FROM users U
+    //   JOIN roles Ro ON U.roleId = Ro.id
+    //   JOIN UserClass UC ON U.id = UC.userId
+    //   JOIN classes C ON UC.classId = C.id
+    //   JOIN avatars A ON U.avatarId = A.id
+    //   JOIN UserSchoolUnit USU ON U.id = USU.userId
+    //   JOIN schoolUnits SU ON USU.schoolUnitId = SU.id 
+    //   LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+    //   LEFT JOIN reviews R ON BRR.reviewId = R.id
+    //   LEFT JOIN BookReview Br ON R.id = Br.reviewId
+    //   LEFT JOIN books B ON Br.bookId = B.id
+    // WHERE U.id = (:userId)
+    // GROUP BY U.id, C.id, C.displayName, SU.id;
+    // `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
     ctx.body = {
-      data: user,
+      data: {
+        pagesRead: user[0].pagesRead,
+        booksRead: user[0].booksRead,
+        reviewsWritten: user[0].reviewsWritten,
+        class: dbClass[0],
+        schoolUnit: schoolUnit[0],
+      },
     };
   // } else ctx.throw(403, 'Forbidden');
 };
