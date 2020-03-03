@@ -22,7 +22,7 @@ async function getUserInfo(ctx) {
         JOIN UserClass UC ON U.id = UC.classId
         JOIN classes C ON UC.classId = C.id
         JOIN BookReviewer BRR ON U.id = BRR.userId
-        JOIN reviews R ON BRR.reviewId = R.id
+        JOIN reviews R ON BRR.reviewId = R.id AND r.active
         JOIN BookReview Br ON R.id = Br.reviewId
         JOIN books B ON Br.bookId = B.id
       WHERE U.id = (:userId)
@@ -153,7 +153,7 @@ async function getRecentlyRead(ctx) {
 
   const latestReads = await connection.query(`
     SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title, b.pages,
-      r.rating, r.id as reviewId, r.simple, r.createdAt,
+      r.rating, r.id as reviewId, r.simple, r.updatedAt as publishDate,
       g.id, g.slug as genreSlug,
       a.id as authorId, CONCAT(a.firstname, ' ', a.lastname) as author
     FROM books b
@@ -166,7 +166,7 @@ async function getRecentlyRead(ctx) {
       JOIN BookAuthor ba ON b.id = ba.bookId
       JOIN authors a ON ba.authorId = a.id
     WHERE u.id = (:userId) AND r.active
-    ORDER BY createdAt DESC
+    ORDER BY publishDate DESC
     LIMIT 5;
   `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
 
@@ -175,14 +175,37 @@ async function getRecentlyRead(ctx) {
   };
 };
 
+async function getUserFavourites(ctx) {
+  const userId = ctx.params.id;
+
+  const favourites = await connection.query(`
+    SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title,
+      r.rating, g.slug as genreSlug, CONCAT(a.firstname, ' ', a.lastname) as author, u.id
+    FROM books b
+      JOIN BookReview br ON b.id = br.bookId
+      JOIN reviews r ON br.reviewId = r.id
+      JOIN BookGenre bg ON b.id = bg.bookId
+      JOIN genres g ON bg.genreId = g.id
+      JOIN BookAuthor ba ON b.id = ba.bookId
+      JOIN authors a ON ba.authorId = a.id
+      JOIN BookReviewer brr on r.id = brr.reviewId
+      JOIN users u on brr.userId = u.id
+    WHERE r.active = true AND u.id = (:userId)
+    ORDER BY rating DESC
+    LIMIT 5;
+  `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+  ctx.body = {
+    data: favourites,
+  };
+
+};
+
 router.patch('/avatar', switchAvatar);
 router.get('/recently-read/:id', getRecentlyRead);
 router.get('/favourite-genre/:id', getFavouriteGenre);
 
-// PROD ROUTES
-// router.get('/id/:id', authenticated, getUserInfo);
-
-// DEV routes
-router.get('/id/:id', getUserInfo);
+router.get('/id/:id', authenticated, getUserInfo);
+router.get('/favourites/:id', getUserFavourites);
 
 module.exports = router;

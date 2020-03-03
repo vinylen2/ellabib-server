@@ -95,11 +95,7 @@ async function publishSimpleReview(ctx) {
   });
 
   review.addUsers(user);
-  review.addBooks(book).then(() => {
-    Book.updateRating(book, Review, bookId);
-  });
-
-  Book.increment({readCount: 1}, { where: { id: bookId }});
+  review.addBooks(book);
 
   ctx.body = {
     data: review,
