@@ -16,13 +16,14 @@ app.proxy = true;
 app.use(bodyParser());
 // app.use(errorHandler());
 
+const origin = app.env === 'production' ? config.url : 'http://localhost:8080';
+
 // Enable CORS
 app.use(cors({
-  origin: 'http://localhost:8080',
-  // origin: 'https://ellabib.se',
+  origin,
   credentials: true,
   allowMethods: ['GET', 'PATCH', 'POST'],
-  allowHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept'],
+  allowHeaders: ['Authorization', 'Origin', 'X-Requested-With', 'Content-Type', 'Accept'],
 }));
 
 // Require the Router defined in words.js
@@ -35,15 +36,27 @@ const user = require('./routes/user.js');
 const classes = require('./routes/classes.js');
 const schoolUnits = require('./routes/schoolUnits.js');
 const avatars = require('./routes/avatars.js');
+const index = require('./routes/index.js');
+let cleanup;
 
 // use only in dev
-// const cleanup = require('./routes/cleanup.js');
+if (app.env == 'development') {
+  cleanup = require('./routes/cleanup.js');
+}
 
 app.listen(config.port);
+
+async function state(ctx, next) {
+  ctx.state.env = app.env;
+  await next();
+}
 
 models.connection.sync().then(() => {
   console.log(`Server listening on port: ${config.port}`);
   console.log('Sequelize synchronized');
+
+  app.use(state);
+
   app.use(auth.routes());
   app.use(books.routes());
   app.use(genres.routes());
@@ -53,7 +66,9 @@ models.connection.sync().then(() => {
   app.use(classes.routes());
   app.use(schoolUnits.routes());
   app.use(avatars.routes());
+  app.use(index.routes());
 
-  // use only in dev
-  // app.use(cleanup.routes());
+  if (app.env == 'development') {
+    app.use(cleanup.routes());
+  }
 });

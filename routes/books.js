@@ -8,9 +8,12 @@ const bokInfoApi = require('../config.json').bokInfo;
 const gApi = require('../config.json').gapi;
 const onix = require('onix');
 const onixGetters = require('./assets/onix-getters.js');
+const moment = require('moment');
 
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
+
+const authenticated = require('../middleware/authenticated.js');
 
 function flattenQueries(array) {
   return _.flatten(array.query.map((query) => {
@@ -257,7 +260,7 @@ async function getBookFromIsbn(ctx) {
       let title = onixGetters.getTitle(feed);
       let originalDescription = onixGetters.getDescription(feed);
 
-      const author = await findOrCreateAuthor(getAuthorFirstname(feed), getAuthorLastname(feed));
+      const author = await findOrCreateAuthor(onixGetters.getAuthorFirstname(feed), onixGetters.getAuthorLastname(feed));
 
       ctx.body = {
         data: {
@@ -313,10 +316,10 @@ async function getBookFromSlug(ctx) {
       MAX(g.slug) as genreSlug, MAX(g.id) as genreId, MAX(g.name) as genreDisplayName,
       MAX(a.id) as authorId, CONCAT(MAX(a.firstname), ' ', MAX(a.lastname)) as author
     FROM books b
-        JOIN BookGenre bg ON b.id = bg.bookId
-        JOIN genres g ON bg.genreId = g.id
-        JOIN BookAuthor ba ON b.id = ba.bookId
-        JOIN authors a ON ba.authorId = a.id
+        LEFT JOIN BookGenre bg ON b.id = bg.bookId
+        LEFT JOIN genres g ON bg.genreId = g.id
+        LEFT JOIN BookAuthor ba ON b.id = ba.bookId
+        LEFT JOIN authors a ON ba.authorId = a.id
         LEFT JOIN BookReview br ON b.id = br.bookId
         LEFT JOIN reviews r ON br.reviewId = r.id AND r.active
     WHERE b.slug = (:slug) 
@@ -531,15 +534,47 @@ async function addImage(ctx) {
 
 }
 
+async function addGenre(ctx) {
+  const { bookId, genreId } = ctx.request.body;
+
+  let date = moment().format('YYYY-MM-DD HH:MM:SS');
+
+  const relation = await connection.query(`
+    INSERT INTO BookGenre (createdAt, updatedAt, bookId, genreId)
+    VALUES ((:date), (:date), (:bookId), (:genreId));
+  `, { replacements: { date, bookId, genreId }, type: Sequelize.QueryTypes.INSERT });
+
+  ctx.body = {
+    bookId,
+    genreId,
+  };
+}
+
+async function editPages(ctx) {
+  const { bookId, pages } = ctx.request.body;
+
+  try {
+    const book = await Book.update(
+      { pages },
+      { where: { id: bookId }}
+    );
+    ctx.body = { success: true };
+  } catch (e) { ctx.throw(err.status || 403); }
+
+}
+
 router.post('/image', addImage);
+router.post('/genre', addGenre);
 
 router.patch('/edit/', editBook);
-router.post('/', postBook);
+router.patch('/edit/pages', editPages);
+
+router.post('/', authenticated, postBook);
 
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);
-router.get('/', getAllBooks);
+router.get('/', authenticated, getAllBooks);
 router.get('/recently', getRecentlyReviewedBooks);
 router.get('/highest', getHighestRatedBooks);
 router.get('/search', searchForBooks);
