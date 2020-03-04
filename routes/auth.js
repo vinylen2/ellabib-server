@@ -160,15 +160,17 @@ async function authSkolon(ctx) {
         C.displayName as classDisplayName,
         C.id as classId,
         A.id as avatarId,
-        A.imageUrl as avatarImageUrl,
-        A.displayName as avatarDisplayName,
         A.type as avatarType,
+        co.color as avatarColor,
+        co.id as avatarColorId,
         SU.id as schoolUnitId, SU.displayName as schoolUnitDisplayName
       FROM users U
         JOIN roles Ro ON U.roleId = Ro.id
         JOIN UserClass UC ON U.id = UC.userId
         JOIN classes C ON UC.classId = C.id
-        JOIN avatars A ON U.avatarId = A.id
+        JOIN UserAvatar UA ON U.id = UA.userId
+        JOIN avatars A ON UA.avatarId = A.id
+        JOIN colors co ON UA.colorId = co.id
         JOIN UserSchoolUnit USU ON U.id = USU.userId
         JOIN schoolUnits SU ON USU.schoolUnitId = SU.id 
       WHERE U.id = (:userId);
@@ -192,13 +194,36 @@ async function authAdmin(ctx) {
 
   if (username === adminCredentials.username && password === adminCredentials.password) {
     const ellabibToken = jwt.sign({ userId: adminCredentials.userId, roleId: 3 }, secret, { expiresIn: "1h" });
+    const dbUser = await connection.query(`
+    SELECT U.id, U.firstName, U.lastName, U.extId,
+      Ro.type as roleType, Ro.displayName as roleDisplayName, Ro.id as roleId,
+      C.displayName as classDisplayName,
+      C.id as classId,
+      A.id as avatarId,
+      A.type as avatarType,
+      co.color as avatarColor,
+      co.id as avatarColorId,
+      SU.id as schoolUnitId, SU.displayName as schoolUnitDisplayName
+    FROM users U
+      JOIN roles Ro ON U.roleId = Ro.id
+      LEFT JOIN UserClass UC ON U.id = UC.userId
+      LEFT JOIN classes C ON UC.classId = C.id
+      JOIN UserAvatar UA ON U.id = UA.userId
+      JOIN avatars A ON UA.avatarId = A.id
+      JOIN colors co ON UA.colorId = co.id
+      LEFT JOIN UserSchoolUnit USU ON U.id = USU.userId
+      LEFT JOIN schoolUnits SU ON USU.schoolUnitId = SU.id 
+    WHERE U.id = (:userId);
+    `, { replacements: { userId: adminCredentials.userId }, type: Sequelize.QueryTypes.SELECT });
+
     ctx.body = {
       data: {
         token: ellabibToken,
-        user: {
-          id: adminCredentials.userId,
-          roleId: 3,
-        },
+        user: dbUser[0],
+        // user: {
+        //   id: adminCredentials.userId,
+        //   roleId: 3,
+        // },
       },
     };
   } else {

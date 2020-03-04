@@ -13,6 +13,7 @@ module.exports = function modelExport(db, DataTypes) {
     this.belongsToMany(models.Review, { through: 'BookReviewer' });
     this.belongsTo(models.Role);
     this.belongsTo(models.Avatar);
+    this.belongsToMany(models.Avatar, { through: 'UserAvatar' });
     this.belongsToMany(models.Class, { through: 'UserClass' });
     this.belongsToMany(models.SchoolUnit, { through: 'UserSchoolUnit' });
   };
