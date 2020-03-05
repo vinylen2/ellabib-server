@@ -16,16 +16,16 @@ async function getUserInfo(ctx) {
         SUM(B.pages) as pagesRead,
         COUNT(R.id) as booksRead,
         SUM(R.simple = 0) as reviewsWritten
-      FROM users u
-        JOIN UserSchoolUnit USU ON U.id = USU.userId
-        JOIN schoolUnits SU ON USU.schoolUnitId = SU.id
-        JOIN UserClass UC ON U.id = UC.classId
-        JOIN classes C ON UC.classId = C.id
-        JOIN BookReviewer BRR ON U.id = BRR.userId
-        JOIN reviews R ON BRR.reviewId = R.id AND r.active
-        JOIN BookReview Br ON R.id = Br.reviewId
-        JOIN books B ON Br.bookId = B.id
-      WHERE U.id = (:userId)
+      FROM users U
+        LEFT JOIN UserSchoolUnit USU ON U.id = USU.userId
+        LEFT JOIN schoolUnits SU ON USU.schoolUnitId = SU.id
+        LEFT JOIN UserClass UC ON U.id = UC.userId
+        LEFT JOIN classes C ON UC.classId = C.id
+        LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+        LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
+        LEFT JOIN BookReview Br ON R.id = Br.reviewId
+        LEFT JOIN books B ON Br.bookId = B.id
+      WHERE U.id = 22
         GROUP BY U.id, SU.id;
     `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
 

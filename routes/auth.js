@@ -12,7 +12,7 @@ const Sequelize = require('sequelize');
 
 const adminCredentials = require('../config.json').adminCredentials;
 const skolon = require('../config.json').skolon;
-const { User, Class, SchoolUnit } = require('../models');
+const { User, Class, SchoolUnit, UserAvatar } = require('../models');
 
 const OAuthApi = axios.create({
   baseURL: skolon.OAuthApi,
@@ -76,7 +76,6 @@ async function authSkolon(ctx) {
         },
         defaults: {
           roleId,
-          avatarId: 13,
         },
       });
 
@@ -120,6 +119,13 @@ async function authSkolon(ctx) {
           INSERT INTO UserClass (createdAt, updatedAt, classId, userId)
           VALUES ((:date), (:date), (:classId), (:userId));
         `, { replacements: { date, userId, classId }, type: Sequelize.QueryTypes.INSERT });
+
+        const avatar = await UserAvatar.create({
+          avatarId: 1,
+          colorId: 1,
+          userId,
+        });
+
       } else {
         const relation = await connection.query(`
           UPDATE UserClass 
@@ -179,7 +185,7 @@ async function authSkolon(ctx) {
       ctx.body = {
         data: {
           token: ellabibToken,
-          user: dbUser,
+          user: dbUser[0],
         },
       };
     } catch (e) { console.log(e) }
