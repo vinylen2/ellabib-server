@@ -160,7 +160,7 @@ async function authSkolon(ctx) {
         C.displayName as classDisplayName,
         C.id as classId,
         A.id as avatarId,
-        A.type as avatarType,
+        A.icon as avatarIcon,
         co.color as avatarColor,
         co.id as avatarColorId,
         SU.id as schoolUnitId, SU.displayName as schoolUnitDisplayName
@@ -168,7 +168,7 @@ async function authSkolon(ctx) {
         JOIN roles Ro ON U.roleId = Ro.id
         JOIN UserClass UC ON U.id = UC.userId
         JOIN classes C ON UC.classId = C.id
-        JOIN UserAvatar UA ON U.id = UA.userId
+        JOIN UserAvatars UA ON U.id = UA.userId
         JOIN avatars A ON UA.avatarId = A.id
         JOIN colors co ON UA.colorId = co.id
         JOIN UserSchoolUnit USU ON U.id = USU.userId
@@ -200,7 +200,7 @@ async function authAdmin(ctx) {
       C.displayName as classDisplayName,
       C.id as classId,
       A.id as avatarId,
-      A.type as avatarType,
+      A.icon as avatarIcon,
       co.color as avatarColor,
       co.id as avatarColorId,
       SU.id as schoolUnitId, SU.displayName as schoolUnitDisplayName

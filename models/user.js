@@ -12,8 +12,9 @@ module.exports = function modelExport(db, DataTypes) {
   Model.associate = function (models) {
     this.belongsToMany(models.Review, { through: 'BookReviewer' });
     this.belongsTo(models.Role);
-    this.belongsTo(models.Avatar);
-    this.belongsToMany(models.Avatar, { through: 'UserAvatar' });
+    this.hasMany(models.UserAvatar);
+    // this.belongsTo(models.UserAvatar);
+    // this.belongsToMany(models.Avatar, { through: 'UserAvatar' });
     this.belongsToMany(models.Class, { through: 'UserClass' });
     this.belongsToMany(models.SchoolUnit, { through: 'UserSchoolUnit' });
   };

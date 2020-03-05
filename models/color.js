@@ -8,5 +8,10 @@ module.exports = function modelExport(db, DataTypes) {
     displayName: DataTypes.STRING,
   });
 
+  Model.associate = function (models) {
+    this.hasMany(models.UserAvatar);
+    // this.belongsToMany(models.Avatar, { through: 'UserAvatar' });
+  };
+
   return Model;
 };
