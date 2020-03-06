@@ -23,6 +23,11 @@ async function getClasses (ctx) {
   GROUP BY C.id
   `, { replacements: { classes: queries.class }, type: Sequelize.QueryTypes.SELECT });
 
+  for (let i = 0; i < classes.length; i++) {
+    classes[i].pagesRead = parseInt(classes[i].pagesRead);
+    classes[i].reviewsWritten = parseInt(classes[i].reviewsWritten);
+  }
+
   ctx.body = {
     data: classes,
   };

@@ -25,8 +25,8 @@ async function getUserInfo(ctx) {
         LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
         LEFT JOIN BookReview Br ON R.id = Br.reviewId
         LEFT JOIN books B ON Br.bookId = B.id
-      WHERE U.id = 22
-        GROUP BY U.id, SU.id;
+      WHERE U.id = (:userId)
+        GROUP BY U.id, C.id, SU.id;
     `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
 
       const dbClass = await connection.query(`
@@ -42,7 +42,7 @@ async function getUserInfo(ctx) {
         JOIN books B ON Br.bookId = B.id
         JOIN UserClass UC ON U.id = UC.classId
         JOIN classes C ON UC.classId = C.id
-      WHERE c.id = (:classId)
+      WHERE C.id = (:classId)
       AND R.active = TRUE
       GROUP BY C.id;
       `, { replacements: { classId: user[0].classId }, type: Sequelize.QueryTypes.SELECT });
