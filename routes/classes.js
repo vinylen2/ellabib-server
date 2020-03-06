@@ -6,6 +6,7 @@ const authenticated = require('../middleware/authenticated.js');
 
 async function getClasses (ctx) {
   const queries = ctx.request.query;
+  console.log(ctx.headers);
 
   const classes = await connection.query(`
     SELECT SUM(B.pages) as pagesRead, 

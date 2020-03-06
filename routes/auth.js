@@ -229,6 +229,9 @@ async function authAdmin(ctx) {
         user: {
           id: adminCredentials.userId,
           roleId: 3,
+          avatarColor: "orange",
+          avatarColorId: "3",
+          avatarIcon: "shield-account",
         },
       },
     };

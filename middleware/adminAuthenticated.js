@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const secret = require('../config.json').secret;
 
-
 module.exports = async (ctx, next) => {
   if (ctx.state.env === 'production') {
     if (!ctx.headers.authorization) ctx.throw(403, 'Forbidden.');

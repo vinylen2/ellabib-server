@@ -403,6 +403,10 @@ async function getHighestRatedBooks(ctx) {
     LIMIT 5;
   `, { type: Sequelize.QueryTypes.SELECT });
 
+  for (let i = 0; i < books.length; i++) {
+    books[i].rating = parseInt(books[i].rating);
+  }
+
   ctx.body = {
     data: books,
     message: 'Success',
