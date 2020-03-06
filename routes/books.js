@@ -13,7 +13,7 @@ const moment = require('moment');
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
 
-const authenticated = require('../middleware/authenticated.js');
+const adminAuthenticated = require('../middleware/adminAuthenticated.js');
 
 function flattenQueries(array) {
   return _.flatten(array.query.map((query) => {
@@ -563,18 +563,18 @@ async function editPages(ctx) {
 
 }
 
-router.post('/image', addImage);
-router.post('/genre', addGenre);
+router.post('/image', adminAuthenticated, addImage);
+router.post('/genre', adminAuthenticated, addGenre);
 
-router.patch('/edit/', editBook);
-router.patch('/edit/pages', editPages);
+router.patch('/edit/', adminAuthenticated, editBook);
+router.patch('/edit/pages', adminAuthenticated ,editPages);
 
-router.post('/', authenticated, postBook);
+router.post('/', adminAuthenticated, postBook);
 
 router.get('/id/:id', getBook);
 router.get('/isbn/:isbn', getBookFromIsbn);
 router.get('/slug/:slug', getBookFromSlug);
-router.get('/', authenticated, getAllBooks);
+router.get('/', getAllBooks);
 router.get('/recently', getRecentlyReviewedBooks);
 router.get('/highest', getHighestRatedBooks);
 router.get('/search', searchForBooks);

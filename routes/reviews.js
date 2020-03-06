@@ -3,7 +3,7 @@ const busboy = require('koa-busboy');
 const Promise = require('bluebird');
 const _ = require('lodash');
 const moment = require('moment');
-const { Review, User, Book, Isbn } = require('../models');
+const { Review, User, Book } = require('../models');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const { promisify } = require('util');
@@ -12,14 +12,15 @@ const unlink = promisify(fs.unlink);
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
 
-// const filedest = '/var/www/html/audio';
-const filedest = '/Users/gabriel/ellabib_audio';
+const adminAuthenticated = require('../middleware/adminAuthenticated.js');
+const authenticated = require('../middleware/authenticated.js');
+
+const filedest = process.env.NODE_ENV === 'production' ? 'var/www/html/audio' : '/Users/gabriel/ellabib_audio';
 
 const uploader = busboy({
   dest: filedest,
   fnDestFilename: (fieldname, filename) => `${filename}-${uuidv4()}-${fieldname}.mp3`,
 });
-
 
 async function getReviewsFromBook(ctx) {
   const slug = ctx.params.slug;
@@ -103,30 +104,6 @@ async function publishSimpleReview(ctx) {
   };
 };
 
-
-/**
- * @api {patch} /reviews Activates selected Review
- * @apiName activateReview
- * @apiGroup Reviews
- * @apiParamExample {json} Request-Example:
- *
- * {
- *  "id": 1,
-  }
- *
- * @apiParam {Number} id Unique ID of Review to activate
- *
- *
- * @apiSuccessExample Success-respone:
- *    HTTP/1.1 200 OK
-      {
-      "data": {
-        "active": true,
-      },
-      "message": "Review activated"
-    }
- *
- */
 async function activateReviews(ctx) {
   const reviews = ctx.request.body;
 
@@ -271,24 +248,16 @@ async function deleteReview(ctx) {
   };
 }
 
-async function updateRating() {
-  Book.increment({readCount: 1}, { where: { id: 5 }});
-
-};
-
-router.patch('/audio/edit', uploader, editReviewAudio);
-router.post('/', uploader, publishReview);
-router.post('/simple', publishSimpleReview);
+router.patch('/audio/edit', adminAuthenticated, uploader, editReviewAudio);
+router.post('/', authenticated, uploader, publishReview);
+router.post('/simple', authenticated, publishSimpleReview);
 router.get('/slug/:slug', getReviewsFromBook);
 router.get('/count', getReviewCount);
-router.get('/update', updateRating);
 
-// dev routes
-router.patch('/delete', deleteReview);
-router.patch('/', activateReviews);
-router.patch('/rating', updateReviewRating);
-router.patch('/text', updateReviewText);
-router.get('/inactive', getInactiveReviews);
+router.patch('/delete', adminAuthenticated, deleteReview);
+router.patch('/', adminAuthenticated, activateReviews);
+router.patch('/rating', adminAuthenticated, updateReviewRating);
+router.patch('/text', adminAuthenticated, updateReviewText);
+router.get('/inactive', adminAuthenticated, getInactiveReviews);
 
-// sharp routes
 module.exports = router;

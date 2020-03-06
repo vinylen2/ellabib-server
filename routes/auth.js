@@ -214,7 +214,7 @@ async function authAdmin(ctx) {
       JOIN roles Ro ON U.roleId = Ro.id
       LEFT JOIN UserClass UC ON U.id = UC.userId
       LEFT JOIN classes C ON UC.classId = C.id
-      JOIN UserAvatar UA ON U.id = UA.userId
+      JOIN UserAvatars UA ON U.id = UA.userId
       JOIN avatars A ON UA.avatarId = A.id
       JOIN colors co ON UA.colorId = co.id
       LEFT JOIN UserSchoolUnit USU ON U.id = USU.userId
@@ -226,10 +226,10 @@ async function authAdmin(ctx) {
       data: {
         token: ellabibToken,
         user: dbUser[0],
-        // user: {
-        //   id: adminCredentials.userId,
-        //   roleId: 3,
-        // },
+        user: {
+          id: adminCredentials.userId,
+          roleId: 3,
+        },
       },
     };
   } else {
@@ -237,16 +237,8 @@ async function authAdmin(ctx) {
   }
 };
 
-const authenticated = require('../middleware/authenticated.js');
-const adminAuthenticated = require('../middleware/adminAuthenticated.js');
-
-async function stuff(ctx) {
-  ctx.body = 'yay';
-};
-
 router.post('/admin', authAdmin);
 router.get('/skolon/:code', authSkolon);
 
-router.get('/protected', adminAuthenticated, stuff);
 
 module.exports = router;

@@ -2,6 +2,8 @@ const router = require('koa-router')({ prefix: '/schoolunit' });
 const { connection } = require('../models');
 const Sequelize = require('sequelize');
 
+const authenticated = require('../middleware/authenticated.js');
+
 async function getSchools(ctx) {
   const queries = ctx.request.query;
 
@@ -27,5 +29,5 @@ async function getSchools(ctx) {
   };
 };
 
-router.get('/', getSchools);
+router.get('/', authenticated, getSchools);
 module.exports = router;

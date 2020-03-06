@@ -1,6 +1,8 @@
 const router = require('koa-router')({ prefix: '/authors' });
 const { Author } = require('../models');
 
+const adminAuthenticated = require('../middleware/adminAuthenticated.js');
+
 async function getAuthors(ctx) {
   const authors = await Author.findAll();
 
@@ -23,7 +25,7 @@ async function postAuthor(ctx) {
   };
 }
 
-router.post('/', postAuthor);
+router.post('/', adminAuthenticated, postAuthor);
 router.get('/', getAuthors);
 
 module.exports = router;
