@@ -16,7 +16,9 @@ app.proxy = true;
 app.use(bodyParser());
 // app.use(errorHandler());
 
-const origin = app.env === 'production' ? config.url : 'http://localhost:8080';
+const node_env = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+
+const origin = node_env === 'production' ? config.url : 'http://localhost:8080';
 
 // Enable CORS
 app.use(cors({
@@ -40,14 +42,14 @@ const index = require('./routes/index.js');
 let cleanup;
 
 // use only in dev
-if (app.env == 'development') {
+if (node_env == 'development') {
   cleanup = require('./routes/cleanup.js');
 }
 
 app.listen(config.port);
 
 async function state(ctx, next) {
-  ctx.state.env = app.env;
+  ctx.state.env = node_env;
   await next();
 }
 
@@ -68,7 +70,7 @@ models.connection.sync().then(() => {
   app.use(avatars.routes());
   app.use(index.routes());
 
-  if (app.env == 'development') {
+  if (node_env == 'development') {
     app.use(cleanup.routes());
   }
 });
