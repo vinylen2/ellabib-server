@@ -8,7 +8,7 @@ const authenticated = require('../middleware/authenticated.js');
 async function getUserInfo(ctx) {
   const userId = ctx.params.id;
 
-  if (ctx.state.env === 'development' || userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
+  if (ctx.state.env === 'development' || userId == ctx.state.jwt.id || ctx.state.jwt.roleId == 3) {
     const user = await connection.query(`
       SELECT 
         C.id as classId,
@@ -79,7 +79,7 @@ async function getUserInfo(ctx) {
 async function getFavouriteGenre(ctx) {
   const userId = ctx.params.id;
 
-  if (ctx.state.env === 'development' || userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
+  if (ctx.state.env === 'development' || userId == ctx.state.jwt.id || ctx.state.jwt.roleId == 3) {
     const favouriteGenre = await connection.query(`
       SELECT G.id as genreId, G.name, G.slug, COUNT(G.name) as userCount, U.id as userId FROM books B
         JOIN BookGenre BG ON B.id = BG.bookId
@@ -102,7 +102,7 @@ async function getFavouriteGenre(ctx) {
 
 async function getRecentlyRead(ctx) {
   const userId = ctx.params.id;
-  if (ctx.state.env === 'development' || userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
+  if (ctx.state.env === 'development' || userId == ctx.state.jwt.id || ctx.state.jwt.roleId == 3) {
 
     const latestReads = await connection.query(`
       SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title, b.pages,
@@ -132,7 +132,7 @@ async function getRecentlyRead(ctx) {
 async function getUserFavourites(ctx) {
   const userId = ctx.params.id;
 
-  if (ctx.state.env === 'development' || userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
+  if (ctx.state.env === 'development' || userId == ctx.state.jwt.id || ctx.state.jwt.roleId == 3) {
 
     const favourites = await connection.query(`
       SELECT b.id as bookId, b.slug as bookSlug, b.imageUrl, b.title,

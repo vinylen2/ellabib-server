@@ -23,7 +23,7 @@ async function getAllAvatars(ctx) {
 async function updateAvatar(ctx) {
   const { userId, avatarId, colorId } = ctx.request.body;
 
-  if (ctx.state.env === 'development' || userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
+  if (ctx.state.env === 'development' || userId == ctx.state.jwt.id || ctx.state.jwt.roleId == 3) {
     let date = moment().format('YYYY-MM-DD');
     const updatedA = await UserAvatar.update(
       { avatarId, colorId, updatedAt: date},
@@ -31,7 +31,7 @@ async function updateAvatar(ctx) {
     );
 
     const newAvatar = await connection.query(`
-      SELECT a.icon as avatarIcon, co.color as avatarColor
+      SELECT A.icon as avatarIcon, co.color as avatarColor
       FROM users U
         JOIN UserAvatars UA ON U.id = UA.userId
         JOIN avatars A ON UA.avatarId = A.id
