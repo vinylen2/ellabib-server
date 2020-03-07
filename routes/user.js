@@ -5,6 +5,67 @@ const Sequelize = require('sequelize');
 
 const authenticated = require('../middleware/authenticated.js');
 
+async function getUserPoints(ctx) {
+  const userId = ctx.params.id;
+
+  let srpPoints = 0;
+  let trpPoints = 0;
+  let arpPoints = 0;
+
+  const srp = await connection.query(`
+    SELECT 
+      SUM(B.pages) as points
+    FROM users U
+        LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+        LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
+        LEFT JOIN BookReview Br ON R.id = Br.reviewId
+        LEFT JOIN books B ON Br.bookId = B.id
+    WHERE U.id = (:userId) AND R.simple
+    GROUP BY U.id;
+  `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+  const trp = await connection.query(`
+    SELECT 
+      SUM(B.pages) * 2 as points
+    FROM users U
+      LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+        LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
+        LEFT JOIN BookReview Br ON R.id = Br.reviewId
+        LEFT JOIN books B ON Br.bookId = B.id
+    WHERE U.id = (:userId) AND R.simple = 0 AND R.reviewAudioUrl IS NULL;
+  `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+  const arp = await connection.query(`
+    SELECT 
+      SUM(B.pages) * 3 as points
+    FROM users U
+        LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+        LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
+        LEFT JOIN BookReview Br ON R.id = Br.reviewId
+        LEFT JOIN books B ON Br.bookId = B.id
+    WHERE U.id = (:userId) AND R.simple = 0 AND R.reviewAudioUrl IS NOT NULL;
+  `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+  if (srp[0].points) {
+    srpPoints = parseInt(srp[0].points)
+    console.log('srp ' + srpPoints);
+  }
+  if (trp[0].points) {
+    trpPoints = parseInt(trp[0].points)
+    console.log('trp ' + trpPoints);
+  }
+  if (arp[0].points) {
+    arpPoints = parseInt(arp[0].points)
+    console.log('arp ' + arpPoints);
+  }
+  let points = srpPoints + trpPoints + arpPoints;
+
+  ctx.body = {
+    points,
+  };
+};
+
+
 async function getUserInfo(ctx) {
   const userId = ctx.params.id;
 
@@ -64,11 +125,62 @@ async function getUserInfo(ctx) {
       GROUP BY SU.id;
       `, { replacements: { schoolUnitId: user[0].schoolUnitId }, type: Sequelize.QueryTypes.SELECT });
 
+    let srpPoints = 0;
+    let trpPoints = 0;
+    let arpPoints = 0;
+    let points = 0;
+
+    const srp = await connection.query(`
+      SELECT 
+        SUM(B.pages) as points
+      FROM users U
+          LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+          LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
+          LEFT JOIN BookReview Br ON R.id = Br.reviewId
+          LEFT JOIN books B ON Br.bookId = B.id
+      WHERE U.id = (:userId) AND R.simple
+      GROUP BY U.id;
+    `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+    const trp = await connection.query(`
+      SELECT 
+        SUM(B.pages) * 2 as points
+      FROM users U
+        LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+          LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
+          LEFT JOIN BookReview Br ON R.id = Br.reviewId
+          LEFT JOIN books B ON Br.bookId = B.id
+      WHERE U.id = (:userId) AND R.simple = 0 AND R.reviewAudioUrl IS NULL;
+    `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+    const arp = await connection.query(`
+      SELECT 
+        SUM(B.pages) * 3 as points
+      FROM users U
+          LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+          LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
+          LEFT JOIN BookReview Br ON R.id = Br.reviewId
+          LEFT JOIN books B ON Br.bookId = B.id
+      WHERE U.id = (:userId) AND R.simple = 0 AND R.reviewAudioUrl IS NOT NULL;
+    `, { replacements: { userId }, type: Sequelize.QueryTypes.SELECT });
+
+    if (srp[0] && srp[0].points !== null) {
+      srpPoints = parseInt(srp[0].points)
+    }
+    if (trp[0] && trp[0].points !== null) {
+      trpPoints = parseInt(trp[0].points)
+    }
+    if (arp[0] && arp[0].points !== null) {
+      arpPoints = parseInt(arp[0].points)
+    }
+    points = srpPoints + trpPoints + arpPoints;
+
     ctx.body = {
       data: {
         pagesRead: user[0].pagesRead,
         booksRead: user[0].booksRead,
         reviewsWritten: user[0].reviewsWritten,
+        points,
         class: dbClass[0],
         schoolUnit: schoolUnit[0],
       },
@@ -162,6 +274,7 @@ router.get('/recently-read/:id', authenticated, getRecentlyRead);
 router.get('/favourite-genre/:id', authenticated, getFavouriteGenre);
 
 router.get('/id/:id', authenticated, getUserInfo);
+router.get('/points/:id', getUserPoints);
 router.get('/favourites/:id', authenticated, getUserFavourites);
 
 module.exports = router;
