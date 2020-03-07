@@ -48,15 +48,12 @@ async function getUserPoints(ctx) {
 
   if (srp[0].points) {
     srpPoints = parseInt(srp[0].points)
-    console.log('srp ' + srpPoints);
   }
   if (trp[0].points) {
     trpPoints = parseInt(trp[0].points)
-    console.log('trp ' + trpPoints);
   }
   if (arp[0].points) {
     arpPoints = parseInt(arp[0].points)
-    console.log('arp ' + arpPoints);
   }
   let points = srpPoints + trpPoints + arpPoints;
 

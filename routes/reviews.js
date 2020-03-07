@@ -157,12 +157,12 @@ async function getInactiveReviews(ctx) {
       b.title, b.description, b.slug,
       r.review, r.reviewAudioUrl, r.descriptionAudioUrl, r.rating, r.createdAt, r.id
     FROM reviews r
-      JOIN BookReviewer brr ON r.id = brr.reviewId
-      JOIN users u ON brr.userId = u.id
-      JOIN BookReview br ON r.id = br.reviewId
-      JOIN books b ON br.bookId = b.id
-      JOIN UserClass uc ON u.id = uc.userId
-      JOIN classes c ON uc.classId = c.id
+      LEFT JOIN BookReviewer brr ON r.id = brr.reviewId
+      LEFT JOIN users u ON brr.userId = u.id
+      LEFT JOIN BookReview br ON r.id = br.reviewId
+      LEFT JOIN books b ON br.bookId = b.id
+      LEFT JOIN UserClass uc ON u.id = uc.userId
+      LEFT JOIN classes c ON uc.classId = c.id
     WHERE r.active = false AND r.simple = false;
   `, { type: Sequelize.QueryTypes.SELECT });
 

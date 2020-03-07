@@ -31,7 +31,7 @@ async function updateAvatar(ctx) {
     );
 
     const newAvatar = await connection.query(`
-      SELECT A.icon as avatarIcon, co.color as avatarColor
+      SELECT A.icon as avatarIcon, co.color as avatarColor, A.displayName as avatarDisplayName, co.displayName as avatarColorDisplayName
       FROM users U
         JOIN UserAvatars UA ON U.id = UA.userId
         JOIN avatars A ON UA.avatarId = A.id

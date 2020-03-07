@@ -166,8 +166,8 @@ async function authSkolon(ctx) {
         C.displayName as classDisplayName,
         C.id as classId,
         A.id as avatarId,
-        A.icon as avatarIcon,
-        co.color as avatarColor,
+        A.icon as avatarIcon, A.displayName as avatarDisplayName,
+        co.color as avatarColor, co.displayName as avatarColorDisplayName,
         co.id as avatarColorId,
         SU.id as schoolUnitId, SU.displayName as schoolUnitDisplayName
       FROM users U
