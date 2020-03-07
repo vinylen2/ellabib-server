@@ -258,14 +258,14 @@ async function getBookFromIsbn(ctx) {
       let imageUrl = onixGetters.getResourceLink(feed);
       let pages = onixGetters.getPages(feed);
       let title = onixGetters.getTitle(feed);
-      let originalDescription = onixGetters.getDescription(feed);
+      let description = onixGetters.getDescription(feed);
 
       const author = await findOrCreateAuthor(onixGetters.getAuthorFirstname(feed), onixGetters.getAuthorLastname(feed));
 
       ctx.body = {
         data: {
           title,
-          originalDescription,
+          description,
           pages,
           imageUrl,
           author,

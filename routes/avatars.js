@@ -23,7 +23,7 @@ async function getAllAvatars(ctx) {
 async function updateAvatar(ctx) {
   const { userId, avatarId, colorId } = ctx.request.body;
 
-  if (ctx.state.env === 'production' && userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
+  if (ctx.state.env === 'development' || userId == ctx.state.jwt.userId || ctx.state.jwt.roleId == 3) {
     let date = moment().format('YYYY-MM-DD');
     const updatedA = await UserAvatar.update(
       { avatarId, colorId, updatedAt: date},

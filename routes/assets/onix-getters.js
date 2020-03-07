@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const onixGetters = {
   getResourceLink(feed) {
-    console.log(feed.products[0].collateralDetail.supportingResource);
     return feed.products[0].collateralDetail.supportingResource
     .find(element => (element.resourceContentType == 1 || element.resourceContentType === '01_03'))
     .resourceVersion[0].resourceLink;
@@ -18,7 +17,7 @@ const onixGetters = {
   },
   getDescription(feed) {
     let text = feed.products[0].collateralDetail.textContent
-      .find(element => (element.type == 3 || element.type == 2))
+      .find(element => (element.type === '02' || element.type === '03'))
       .text;
     
     return _.unescape(text).replace(/(<([^>]+)>)/ig,"");
