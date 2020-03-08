@@ -6,6 +6,7 @@ module.exports = function modelExport(db, DataTypes) {
   const Model = db.define(tableName, {
     icon: DataTypes.STRING,
     displayName: DataTypes.STRING,
+    pointRequirement: DataTypes.INTEGER,
   });
 
   Model.associate = function (models) {

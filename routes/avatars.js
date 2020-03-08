@@ -7,7 +7,8 @@ const authenticated = require('../middleware/authenticated.js');
 
 async function getAllAvatars(ctx) {
   const avatars = await Avatar.findAll({
-    attributes: ['id', 'icon', 'displayName',],
+    attributes: ['id', 'icon', 'displayName', 'pointRequirement'],
+    order: [['pointRequirement', 'ASC']]
   });
 
   const colors = await Color.findAll({
