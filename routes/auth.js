@@ -13,6 +13,7 @@ const Sequelize = require('sequelize');
 const adminCredentials = require('../config.json').adminCredentials;
 const skolon = require('../config.json').skolon;
 const { User, Class, SchoolUnit, UserAvatar } = require('../models');
+const authenticated = require('../middleware/authenticated.js');
 
 const OAuthApi = axios.create({
   baseURL: skolon.OAuthApi,
@@ -240,8 +241,14 @@ async function authAdmin(ctx) {
   }
 };
 
-router.post('/admin', authAdmin);
-router.get('/skolon/:code', authSkolon);
+async function checkToken(ctx) {
+  ctx.body = {
+    status: true
+  };
+};
 
+router.post('/admin', authAdmin);
+router.get('/activity', authenticated, checkToken);
+router.get('/skolon/:code', authSkolon);
 
 module.exports = router;

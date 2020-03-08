@@ -376,7 +376,7 @@ async function getRecentlyReviewedBooks(ctx) {
       JOIN BookAuthor ba ON b.id = ba.bookId
       JOIN authors a ON ba.authorId = a.id
     WHERE r.active
-    ORDER BY r.updatedAt DESC
+    ORDER BY r.updatedAt ASC
     LIMIT 5;
   `, { type: Sequelize.QueryTypes.SELECT });
 
