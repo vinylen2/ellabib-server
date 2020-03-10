@@ -16,12 +16,12 @@ async function getClasses (ctx) {
       C.id,
       0 AS points
     FROM users U 
-      JOIN BookReviewer BRR ON U.id = BRR.userId
-      JOIN reviews R ON BRR.reviewId = R.id
-      JOIN BookReview Br ON R.id = Br.reviewId
-      JOIN books B ON Br.bookId = B.id
-      JOIN UserClass UC ON U.id = UC.classId
-      JOIN classes C ON UC.classId = C.id
+      LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
+      LEFT JOIN reviews R ON BRR.reviewId = R.id
+      LEFT JOIN BookReview Br ON R.id = Br.reviewId
+      LEFT JOIN books B ON Br.bookId = B.id
+      LEFT JOIN UserClass UC ON U.id = UC.classId
+      LEFT JOIN classes C ON UC.classId = C.id
     ${queries.class ? 'WHERE C.displayName IN (:classes)' : ''}
     AND R.active = TRUE AND U.roleId = 2
     GROUP BY C.id
