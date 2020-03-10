@@ -15,7 +15,7 @@ const Sequelize = require('sequelize');
 const adminAuthenticated = require('../middleware/adminAuthenticated.js');
 const authenticated = require('../middleware/authenticated.js');
 
-const filedest = process.env.NODE_ENV === 'production' ? 'var/www/html/audio' : '/Users/gabriel/ellabib_audio';
+const filedest = process.env.NODE_ENV === 'production' ? '/var/www/html/audio' : '/Users/gabriel/ellabib_audio';
 
 const uploader = busboy({
   dest: filedest,

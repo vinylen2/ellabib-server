@@ -80,26 +80,29 @@ async function authSkolon(ctx) {
         },
       });
 
-      const dbClass = await Class.findOrCreate({
-        where: {
-          extId: skolonUserClass.id
-        },
-        defaults: {
-          displayName: skolonUserClass.name,
-        },
-      });
+      let classId = false;
+
+      if (skolonUserClass.id) {
+        const dbClass = await Class.findOrCreate({
+          where: {
+            extId: skolonUserClass.id
+          },
+          defaults: {
+            displayName: skolonUserClass.name,
+          },
+        });
+        classId = dbClass[0].dataValues.id;
+      }
 
       const dbSchool = await SchoolUnit.findOrCreate({
         where: { extId: skolonUserSchool.id },
         defaults: {
           displayName: skolonUserSchool.name,
-          // schoolUnitCode: skolonUserSchoolUnitCode,
         },
       });
 
       const userId = user[0].dataValues.id;
       const dbRoleId = user[0].dataValues.roleId
-      const classId = dbClass[0].dataValues.id;
       const schoolUnitId = dbSchool[0].dataValues.id;
 
       const hasRelation = await User.find({
@@ -114,7 +117,7 @@ async function authSkolon(ctx) {
 
       let date = moment().format();
 
-      if (hasRelation == null) {
+      if (hasRelation == null && classId) {
       // add createdAt and updatedAt for todays date
         const relation = await connection.query(`
           INSERT INTO UserClass (createdAt, updatedAt, classId, userId)
@@ -127,7 +130,7 @@ async function authSkolon(ctx) {
           userId,
         });
 
-      } else {
+      } else if (hasRelation) {
         const relation = await connection.query(`
           UPDATE UserClass 
           SET classId = (:classId), updatedAt = (:date)
@@ -146,7 +149,6 @@ async function authSkolon(ctx) {
       })
 
       if (hasRelationSchool == null) {
-      // add createdAt and updatedAt for todays date
         const relationSchool = await connection.query(`
           INSERT INTO UserSchoolUnit (createdAt, updatedAt, schoolUnitId, userId)
           VALUES ((:date), (:date), (:schoolUnitId), (:userId));
@@ -189,6 +191,7 @@ async function authSkolon(ctx) {
           user: dbUser[0],
         },
       };
+      // ngn slags errorhandling
     } catch (e) { console.log(e) }
   } catch (e) { console.log(e) }
 }
