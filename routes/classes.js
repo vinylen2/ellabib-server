@@ -18,7 +18,7 @@ async function getClasses (ctx) {
       LEFT JOIN reviews R ON BRR.reviewId = R.id
       LEFT JOIN BookReview Br ON R.id = Br.reviewId
       LEFT JOIN books B ON Br.bookId = B.id
-      LEFT JOIN UserClass UC ON U.id = UC.classId
+      LEFT JOIN UserClass UC ON U.id = UC.userId
       LEFT JOIN classes C ON UC.classId = C.id
     WHERE U.roleId = 2
     AND R.active = TRUE
@@ -27,7 +27,7 @@ async function getClasses (ctx) {
 
   const srpArray = await connection.query(`
     SELECT 
-      SUM(B.pages) as points, C.id as classId, C.displayName as classDisplayName
+      COUNT(B.id) * 10 as points, C.id as classId, C.displayName as classDisplayName
     FROM users U
         LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
         LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
@@ -43,7 +43,7 @@ async function getClasses (ctx) {
 
   const trpArray = await connection.query(`
     SELECT 
-      SUM(B.pages) * 2 as points, C.id as classId, C.displayName as classDisplayName
+      COUNT(B.id) * 20 as points, C.id as classId, C.displayName as classDisplayName
     FROM users U
         LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
         LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
@@ -59,7 +59,7 @@ async function getClasses (ctx) {
 
   const arpArray = await connection.query(`
     SELECT 
-      SUM(B.pages) * 3 as points, C.id as classId, C.displayName as classDisplayName
+      COUNT(B.id) * 30 as points, C.id as classId, C.displayName as classDisplayName
     FROM users U
         LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
         LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
@@ -77,8 +77,8 @@ async function getClasses (ctx) {
     classes[i].pagesRead = parseInt(classes[i].pagesRead);
     classes[i].reviewsWritten = parseInt(classes[i].reviewsWritten);
     classes[i].points = getPointValue(srpArray, classes[i].id);
-    classes[i].points += (getPointValue(trpArray, classes[i].id) * 2);
-    classes[i].points += (getPointValue(arpArray, classes[i].id) * 3);
+    classes[i].points += getPointValue(trpArray, classes[i].id);
+    classes[i].points += getPointValue(arpArray, classes[i].id);
   }
 
   ctx.body = {
@@ -119,7 +119,8 @@ async function getClassById(ctx) {
   };
 }
 
-router.get('/', authenticated, getClasses);
+// router.get('/', authenticated, getClasses);
+router.get('/', getClasses);
 router.get('/:id', authenticated, getClassById);
 
 module.exports = router;

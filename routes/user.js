@@ -98,7 +98,7 @@ async function getUserInfo(ctx) {
         JOIN reviews R ON BRR.reviewId = R.id
         JOIN BookReview Br ON R.id = Br.reviewId
         JOIN books B ON Br.bookId = B.id
-        JOIN UserClass UC ON U.id = UC.classId
+        JOIN UserClass UC ON U.id = UC.userId
         JOIN classes C ON UC.classId = C.id
       WHERE C.id = (:classId)
       AND R.active = TRUE
