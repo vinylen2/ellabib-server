@@ -129,7 +129,7 @@ async function getUserInfo(ctx) {
 
     const srp = await connection.query(`
       SELECT 
-        SUM(B.pages) as points
+        COUNT(B.id) * 10 as points
       FROM users U
           LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
           LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
@@ -141,7 +141,7 @@ async function getUserInfo(ctx) {
 
     const trp = await connection.query(`
       SELECT 
-        SUM(B.pages) * 2 as points
+        COUNT(B.id) * 20 as points
       FROM users U
         LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
           LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
@@ -152,7 +152,7 @@ async function getUserInfo(ctx) {
 
     const arp = await connection.query(`
       SELECT 
-        SUM(B.pages) * 3 as points
+        COUNT(B.id) * 30 as points
       FROM users U
           LEFT JOIN BookReviewer BRR ON U.id = BRR.userId
           LEFT JOIN reviews R ON BRR.reviewId = R.id AND R.active
