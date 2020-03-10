@@ -6,8 +6,6 @@ const Sequelize = require('sequelize');
 const authenticated = require('../middleware/authenticated.js');
 
 async function getClasses (ctx) {
-  const queries = ctx.request.query;
-
   const classes = await connection.query(`
     SELECT SUM(B.pages) as pagesRead, 
       C.displayName, 
@@ -22,10 +20,10 @@ async function getClasses (ctx) {
       LEFT JOIN books B ON Br.bookId = B.id
       LEFT JOIN UserClass UC ON U.id = UC.classId
       LEFT JOIN classes C ON UC.classId = C.id
-    ${queries.class ? 'WHERE C.displayName IN (:classes)' : ''}
-    AND R.active = TRUE AND U.roleId = 2
+    WHERE U.roleId = 2
+    AND R.active = TRUE
     GROUP BY C.id
-  `, { replacements: { classes: queries.class }, type: Sequelize.QueryTypes.SELECT });
+  `, {type: Sequelize.QueryTypes.SELECT });
 
   const srpArray = await connection.query(`
     SELECT 
