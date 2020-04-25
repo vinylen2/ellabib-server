@@ -499,13 +499,14 @@ async function getBooksReadById (ctx) {
 };
 
 async function postBook(ctx) {
-  const { genreId, isbn, title, pages, authorId, description } = ctx.request.body;
+  const { genreId, isbn, title, pages, authorId, description, imageUrl } = ctx.request.body;
 
   const book = await Book.create({
     title,
     slug: slugify(title),
     pages,
     description,
+    imageUrl,
   });
 
   book.setGenres(genreId);

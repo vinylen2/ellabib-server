@@ -119,8 +119,7 @@ async function getClassById(ctx) {
   };
 }
 
-// router.get('/', authenticated, getClasses);
-router.get('/', getClasses);
+router.get('/', authenticated, getClasses);
 router.get('/:id', authenticated, getClassById);
 
 module.exports = router;

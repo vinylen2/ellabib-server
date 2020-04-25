@@ -22,8 +22,8 @@ const origin = node_env === 'production' ? config.url : 'http://localhost:8080';
 
 // Enable CORS
 app.use(cors({
-  // origin: 'http://localhost:8080',
-  origin,
+  origin: 'http://localhost:8080',
+  // origin,
   credentials: true,
   allowMethods: ['GET', 'PATCH', 'POST'],
   allowHeaders: ['Authorization', 'Origin', 'X-Requested-With', 'Content-Type', 'Accept'],
